@@ -1,59 +1,96 @@
 from torch import nn, optim
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
+from scipy.io import loadmat
+import h5py
+import cv2
+import os
+import glob
+import numpy as np
 
-class Net(nn.Module):
-    def __init__(self, num_classes):
+class RGBToHyperSpectralDataset(Dataset):
+    def __init__(self, rgb_dir, hyperspectral_dir, transform=None):
+        self.rgb_files = sorted(glob.glob(os.path.join(rgb_dir, '*.jpg')))
+        self.hyperspectral_files = sorted(glob.glob(os.path.join(hyperspectral_dir, '*.mat')))
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.rgb_files)
+
+    def __getitem__(self, idx):
+        rgb_path = self.rgb_files[idx]
+        hyperspectral_path = self.hyperspectral_files[idx]
+
+        # Load RGB image
+        rgb_image = cv2.imread(rgb_path)
+        rgb_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2RGB)
+        rgb_image = rgb_image.astype(np.float32) / 255.0
+
+        # Load hyperspectral image
+        with h5py.File(hyperspectral_path, 'r') as f:
+            hyperspectral_image = np.array(f['cube'], dtype=np.float32)
+
+        if self.transform:
+            rgb_image = self.transform(rgb_image)
+            hyperspectral_image = self.transform(hyperspectral_image)
+
+        return rgb_image, hyperspectral_image
+
+class RGBToHyperSpectralNet(nn.Module):
+    def __init__(self, input_channels, output_channels):
         super().__init__()
         self.feature_extractor = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.Conv2d(input_channels, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(128, 128, kernel_size=3, padding=1),
             nn.ELU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Flatten(),
         )
-        self.classifier = nn.Linear(64*32*32, num_classes)
+        self.upsample = nn.Sequential(
+            nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2),
+            nn.ELU(),
+            nn.ConvTranspose2d(64, output_channels, kernel_size=2, stride=2),
+            nn.Sigmoid()  # To ensure the output is in the range [0, 1]
+        )
 
     def forward(self, x):
         x = self.feature_extractor(x)
-        x = self.classifier(x)
+        x = self.upsample(x)
         return x
 
-train_tranforms = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomRotation(45),
-    transforms.RandomAutocontrast(),
+
+# Define the transformations
+train_transforms = transforms.Compose([
     transforms.ToTensor()
 ])
 
-# Cargar el dataset y crear el dataloader
-dataset_train = ImageFolder('./dataset/Train_RGB', transform=train_tranforms)
+# Create the dataset and dataloader
+rgb_dir = './dataset/Train_RGB'
+hyperspectral_dir = './dataset/Train_Spectral'
+dataset_train = RGBToHyperSpectralDataset(rgb_dir, hyperspectral_dir, transform=train_transforms)
+dataloader_train = DataLoader(dataset_train, shuffle=True, batch_size=16)
 
-dataloader_train = DataLoader(
-    dataset_train, shuffle=True, batch_size=16
-)
+# Initialize the network, loss function and optimizer
+input_channels = 3  # RGB channels
+output_channels = 31  # Number of hyperspectral channels (adjust as needed)
+net = RGBToHyperSpectralNet(input_channels, output_channels)
 
-# Inicializar la red, la función de pérdida y el optimizador
-net = Net(num_classes=7)
-
-criterion = nn.CrossEntropyLoss()
+criterion = nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 
-# Entrenamiento del modelo
-for epoch in range(3):
-    running_loss = 0.0
-    # Iterate over training batches
-    for images, labels in dataloader_train:
+# Train the model
+for epoch in range(10):
+    for rgb_images, hyperspectral_images in dataloader_train:
         optimizer.zero_grad()
-        outputs = net(images)
-        loss = criterion(outputs, labels)
+        outputs = net(rgb_images)
+        loss = criterion(outputs, hyperspectral_images)
         loss.backward()
         optimizer.step()
-        running_loss += loss.item()
+        print(f'Epoch [{epoch+1}/10], Loss: {loss.item():.4f}')
 
-    epoch_loss = running_loss / len(dataloader_train)
-    print(f"Epoch {epoch+1}, Loss: {epoch_loss:.10f}")
+print("Training complete")
