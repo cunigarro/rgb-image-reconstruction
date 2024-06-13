@@ -1,3 +1,2 @@
-import torch
+from torch.nn import Sequential
 
-cnn = torch.nn
