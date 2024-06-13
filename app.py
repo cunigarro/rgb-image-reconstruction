@@ -1,7 +1,7 @@
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import ToTensor
+from torchvision import transforms
 
 class Net(nn.Module):
     def __init__(self, num_classes):
@@ -15,15 +15,23 @@ class Net(nn.Module):
             nn.MaxPool2d(kernel_size=2),
             nn.Flatten(),
         )
-        self.classifier = nn.Linear(64*16*16, num_classes)
+        self.classifier = nn.Linear(64*32*32, num_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)
         x = self.classifier(x)
         return x
 
+train_tranforms = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(45),
+    transforms.RandomAutocontrast(),
+    transforms.ToTensor()
+])
+
 # Cargar el dataset y crear el dataloader
-dataset_train = ImageFolder('datasets', transform=ToTensor())
+dataset_train = ImageFolder('./dataset/Train_RGB', transform=train_tranforms)
 
 dataloader_train = DataLoader(
     dataset_train, shuffle=True, batch_size=16
