@@ -7,6 +7,7 @@ import cv2
 import os
 import glob
 import numpy as np
+import torch.nn.functional as F
 
 class RGBToHyperSpectralDataset(Dataset):
     def __init__(self, rgb_dir, hyperspectral_dir, transform=None):
@@ -62,6 +63,7 @@ class RGBToHyperSpectralNet(nn.Module):
     def forward(self, x):
         x = self.feature_extractor(x)
         x = self.upsample(x)
+        x = F.pad(x, (0, 0, 1, 1))
         return x
 
 
