@@ -29,6 +29,7 @@ class RGBToHyperSpectralDataset(Dataset):
         # Load hyperspectral image
         with h5py.File(hyperspectral_path, 'r') as f:
             hyperspectral_image = np.array(f['cube'], dtype=np.float32)
+            hyperspectral_image = np.transpose(hyperspectral_image, (2, 1, 0))
 
         if self.transform:
             rgb_image = self.transform(rgb_image)
