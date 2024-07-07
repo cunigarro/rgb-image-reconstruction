@@ -8,6 +8,7 @@ import os
 import glob
 import numpy as np
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 class RGBToHyperSpectralDataset(Dataset):
     def __init__(self, rgb_dir, hyperspectral_dir, transform=None):
@@ -35,6 +36,8 @@ class RGBToHyperSpectralDataset(Dataset):
         if self.transform:
             rgb_image = self.transform(rgb_image)
             hyperspectral_image = self.transform(hyperspectral_image)
+
+        plt.imshow(hyperspectral_image[:,15,:].numpy())
 
         return rgb_image, hyperspectral_image
 
