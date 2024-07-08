@@ -1,7 +1,6 @@
-from torch import nn, optim
+from torch import nn, optim, no_grad
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-from scipy.io import loadmat
 import h5py
 import cv2
 import os
@@ -23,12 +22,10 @@ class RGBToHyperSpectralDataset(Dataset):
         rgb_path = self.rgb_files[idx]
         hyperspectral_path = self.hyperspectral_files[idx]
 
-        # Load RGB image
         rgb_image = cv2.imread(rgb_path)
         rgb_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2RGB)
         rgb_image = rgb_image.astype(np.float32) / 255.0
 
-        # Load hyperspectral image
         with h5py.File(hyperspectral_path, 'r') as f:
             hyperspectral_image = np.array(f['cube'], dtype=np.float32)
             hyperspectral_image = np.transpose(hyperspectral_image, (2, 1, 0))
@@ -60,7 +57,7 @@ class RGBToHyperSpectralNet(nn.Module):
             nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2),
             nn.ELU(),
             nn.ConvTranspose2d(64, output_channels, kernel_size=2, stride=2),
-            nn.Sigmoid()  # To ensure the output is in the range [0, 1]
+            nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -69,28 +66,32 @@ class RGBToHyperSpectralNet(nn.Module):
         x = F.pad(x, (0, 0, 1, 1))
         return x
 
-
-# Define the transformations
 train_transforms = transforms.Compose([
     transforms.ToTensor()
 ])
 
-# Create the dataset and dataloader
 rgb_dir = './dataset/Train_RGB'
 hyperspectral_dir = './dataset/Train_Spectral'
 dataset_train = RGBToHyperSpectralDataset(rgb_dir, hyperspectral_dir, transform=train_transforms)
 dataloader_train = DataLoader(dataset_train, shuffle=True, batch_size=16)
 
-# Initialize the network, loss function and optimizer
-input_channels = 3  # RGB channels
-output_channels = 31  # Number of hyperspectral channels (adjust as needed)
+val_rgb_dir = './dataset/Valid_RGB'
+val_hyperspectral_dir = './dataset/Valid_Spectral'
+dataset_val = RGBToHyperSpectralDataset(val_rgb_dir, val_hyperspectral_dir, transform=train_transforms)
+dataloader_val = DataLoader(dataset_val, batch_size=16)
+
+input_channels = 3
+output_channels = 31
 net = RGBToHyperSpectralNet(input_channels, output_channels)
 
 criterion = nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 
-# Train the model
+train_losses = []
+val_losses = []
+
 for epoch in range(10):
+    net.train()
     for rgb_images, hyperspectral_images in dataloader_train:
         optimizer.zero_grad()
         outputs = net(rgb_images)
@@ -99,4 +100,23 @@ for epoch in range(10):
         optimizer.step()
         print(f'Epoch [{epoch+1}/10], Loss: {loss.item():.4f}')
 
+    net.eval()
+    with no_grad():
+        for rgb_images_val, hyperspectral_images_val in dataloader_val:
+            outputs_val = net(rgb_images_val)
+            loss_val = criterion(outputs_val, hyperspectral_images_val)
+            val_losses.append(loss_val.item())
+
+    print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}, Validation Loss: {np.mean(val_losses):.4f}')
+
 print("Training complete")
+
+plt.figure(figsize=(10, 5))
+plt.plot(train_losses, label='Training Loss')
+plt.plot(np.arange(0, len(val_losses) * len(train_losses), len(train_losses)), val_losses, label='Validation Loss')
+plt.xlabel('Iterations')
+plt.ylabel('Loss')
+plt.title('Training and Validation Loss')
+plt.legend()
+plt.grid(True)
+plt.show()
