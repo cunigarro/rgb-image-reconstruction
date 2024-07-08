@@ -37,7 +37,7 @@ class RGBToHyperSpectralDataset(Dataset):
             rgb_image = self.transform(rgb_image)
             hyperspectral_image = self.transform(hyperspectral_image)
 
-        plt.imshow(hyperspectral_image[:,15,:].numpy())
+        # plt.imshow(hyperspectral_image[:,15,:].numpy())
 
         return rgb_image, hyperspectral_image
 
