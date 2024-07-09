@@ -113,7 +113,7 @@ print("Training complete")
 
 plt.figure(figsize=(10, 5))
 plt.plot(train_losses, label='Training Loss')
-plt.plot(np.arange(0, len(val_losses) * len(train_losses), len(train_losses)), val_losses, label='Validation Loss')
+plt.plot(val_losses, label='Validation Loss')
 plt.xlabel('Iterations')
 plt.ylabel('Loss')
 plt.title('Training and Validation Loss')
