@@ -98,7 +98,7 @@ for epoch in range(10):
         loss = criterion(outputs, hyperspectral_images)
         loss.backward()
         optimizer.step()
-        print(f'Epoch [{epoch+1}/10], Loss: {loss.item():.4f}')
+        train_losses.append(loss.item())
 
     net.eval()
     with no_grad():
