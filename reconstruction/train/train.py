@@ -21,7 +21,7 @@ val_hyperspectral_dir = './dataset/Valid_Spectral'
 dataset_val = RGBToHyperSpectralDataset(val_rgb_dir, val_hyperspectral_dir, transform=train_transforms)
 dataloader_val = DataLoader(dataset_val, batch_size=16)
 
-input_channels = 3
+input_channels = 4
 output_channels = 31
 net = RGBToHyperSpectralNet(input_channels, output_channels)
 

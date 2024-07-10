@@ -8,6 +8,8 @@ import numpy as np
 class RGBToHyperSpectralDataset(Dataset):
     def __init__(self, rgb_dir, hyperspectral_dir, transform=None):
         self.rgb_files = sorted(glob.glob(os.path.join(rgb_dir, '*.jpg')))
+        self.rgb_files = [f for f in self.rgb_files if not f.endswith('_nir.jpg')]
+        self.nir_files = sorted(glob.glob(os.path.join(rgb_dir, '*_nir.jpg')))
         self.hyperspectral_files = sorted(glob.glob(os.path.join(hyperspectral_dir, '*.mat')))
         self.transform = transform
 
@@ -16,11 +18,16 @@ class RGBToHyperSpectralDataset(Dataset):
 
     def __getitem__(self, idx):
         rgb_path = self.rgb_files[idx]
+        nir_path = self.nir_files[idx]
         hyperspectral_path = self.hyperspectral_files[idx]
 
         rgb_image = cv2.imread(rgb_path)
         rgb_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2RGB)
         rgb_image = rgb_image.astype(np.float32) / 255.0
+
+        nir_image = cv2.imread(nir_path)
+        nir_image = cv2.cvtColor(nir_image, cv2.COLOR_BGR2RGB)
+        nir_image = nir_image.astype(np.float32) / 255.0
 
         with h5py.File(hyperspectral_path, 'r') as f:
             hyperspectral_image = np.array(f['cube'], dtype=np.float32)
@@ -28,8 +35,9 @@ class RGBToHyperSpectralDataset(Dataset):
 
         if self.transform:
             rgb_image = self.transform(rgb_image)
+            nir_image = self.transform(nir_image)
             hyperspectral_image = self.transform(hyperspectral_image)
 
-        # plt.imshow(hyperspectral_image[:,15,:].numpy())
+        rgb_image = np.dstack((rgb_image, nir_image))
 
         return rgb_image, hyperspectral_image
