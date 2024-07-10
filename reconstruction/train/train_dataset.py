@@ -3,6 +3,7 @@ import h5py
 import cv2
 import os
 import glob
+import numpy as np
 
 class RGBToHyperSpectralDataset(Dataset):
     def __init__(self, rgb_dir, hyperspectral_dir, transform=None):

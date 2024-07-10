@@ -4,8 +4,8 @@ from torchvision import transforms
 import numpy as np
 import matplotlib.pyplot as plt
 
-from reconstruction.train.architecture import RGBToHyperSpectralNet
-from reconstruction.train.dataset import RGBToHyperSpectralDataset
+from architecture import RGBToHyperSpectralNet
+from train_dataset import RGBToHyperSpectralDataset
 
 train_transforms = transforms.Compose([
     transforms.ToTensor()
