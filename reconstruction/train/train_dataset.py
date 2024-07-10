@@ -22,12 +22,9 @@ class RGBToHyperSpectralDataset(Dataset):
         hyperspectral_path = self.hyperspectral_files[idx]
 
         rgb_image = cv2.imread(rgb_path)
-        rgb_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2RGB)
-        rgb_image = rgb_image.astype(np.float32) / 255.0
-
         nir_image = cv2.imread(nir_path)
-        nir_image = cv2.cvtColor(nir_image, cv2.COLOR_BGR2RGB)
-        nir_image = nir_image.astype(np.float32) / 255.0
+        rgb_image = np.dstack((rgb_image, nir_image[:, :, 0]))
+        rgb_image = rgb_image.astype(np.float32) / 255.0
 
         with h5py.File(hyperspectral_path, 'r') as f:
             hyperspectral_image = np.array(f['cube'], dtype=np.float32)
@@ -35,9 +32,6 @@ class RGBToHyperSpectralDataset(Dataset):
 
         if self.transform:
             rgb_image = self.transform(rgb_image)
-            nir_image = self.transform(nir_image)
             hyperspectral_image = self.transform(hyperspectral_image)
-
-        rgb_image = np.dstack((rgb_image, nir_image))
 
         return rgb_image, hyperspectral_image
