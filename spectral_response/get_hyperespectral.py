@@ -5,7 +5,7 @@ import scipy.io as sio
 
 def load_spectral_response(csv_path):
     df = pd.read_csv(csv_path)
-    wavelengths = df.columns[1:]
+    wavelengths = df.values[:,0].astype(float)
     response_matrix = df.values[:, 1:].astype(float)
     return wavelengths, response_matrix
 
