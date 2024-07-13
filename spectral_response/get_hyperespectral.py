@@ -5,7 +5,7 @@ import scipy.io as sio
 
 def load_spectral_response(csv_path):
     df = pd.read_csv(csv_path)
-    wavelengths = df.columns[1:].astype(float)
+    wavelengths = df.columns[1:]
     response_matrix = df.values[:, 1:].astype(float)
     return wavelengths, response_matrix
 
@@ -15,7 +15,7 @@ def rgb_to_hyperspectral(rgb_image, response_matrix):
 
     hyperspectral_flat = np.dot(rgb_flat, response_matrix.T)
 
-    num_bands = response_matrix.shape[1]
+    num_bands = response_matrix.shape[0]
     hyperspectral_image = hyperspectral_flat.reshape(h, w, num_bands)
 
     return hyperspectral_image
