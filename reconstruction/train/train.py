@@ -1,4 +1,4 @@
-from torch import nn, optim, no_grad
+from torch import nn, optim, no_grad, save
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
@@ -49,6 +49,10 @@ for epoch in range(10):
             val_losses.append(loss_val.item())
 
     print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}, Validation Loss: {np.mean(val_losses):.4f}')
+
+model_path = './model_weights.pth'
+save(net.state_dict(), model_path)
+print(f"Model weights saved to {model_path}")
 
 print("Training complete")
 
