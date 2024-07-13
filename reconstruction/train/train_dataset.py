@@ -23,7 +23,8 @@ class RGBToHyperSpectralDataset(Dataset):
 
         rgb_image = cv2.imread(rgb_path)
         nir_image = cv2.imread(nir_path)
-        rgb_image = np.dstack((rgb_image, nir_image[:, :, 0]))
+        nir_average = np.mean(nir_image, axis=2)
+        rgb_image = np.dstack((rgb_image, nir_average))
         rgb_image = rgb_image.astype(np.float32) / 255.0
 
         with h5py.File(hyperspectral_path, 'r') as f:
