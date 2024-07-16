@@ -11,13 +11,13 @@ train_transforms = transforms.Compose([
     transforms.ToTensor()
 ])
 
-rgb_dir = './dataset/Train_RGB'
-hyperspectral_dir = './dataset/Train_Spectral'
+rgb_dir = './dataset_02/train_rgb'
+hyperspectral_dir = './dataset_02/train_spectral'
 dataset_train = RGBToHyperSpectralDataset(rgb_dir, hyperspectral_dir, transform=train_transforms)
 dataloader_train = DataLoader(dataset_train, shuffle=True, batch_size=16)
 
-val_rgb_dir = './dataset/Valid_RGB'
-val_hyperspectral_dir = './dataset/Valid_Spectral'
+val_rgb_dir = './dataset_02/valid_rgb'
+val_hyperspectral_dir = './dataset_02/valid_spectral'
 dataset_val = RGBToHyperSpectralDataset(val_rgb_dir, val_hyperspectral_dir, transform=train_transforms)
 dataloader_val = DataLoader(dataset_val, batch_size=16)
 
@@ -41,14 +41,16 @@ for epoch in range(10):
         optimizer.step()
         train_losses.append(loss.item())
 
-    net.eval()
+    print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}')
+
+    """ net.eval()
     with no_grad():
         for rgb_images_val, hyperspectral_images_val in dataloader_val:
             outputs_val = net(rgb_images_val)
             loss_val = criterion(outputs_val, hyperspectral_images_val)
             val_losses.append(loss_val.item())
 
-    print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}, Validation Loss: {np.mean(val_losses):.4f}')
+    print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}, Validation Loss: {np.mean(val_losses):.4f}') """
 
 model_path = './model_weights.pth'
 save(net.state_dict(), model_path)

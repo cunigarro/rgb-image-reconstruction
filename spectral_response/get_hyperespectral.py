@@ -37,6 +37,6 @@ hyperspectral_image = rgb_to_hyperspectral(rgb_image, response_matrix)
 normalized_hyperspectral_image = normalize_image(hyperspectral_image)
 
 output_mat_file = './hyperspectral_image.mat'
-sio.savemat(output_mat_file, {'cube': normalized_hyperspectral_image, 'wavelengths': wavelengths})
+sio.savemat(output_mat_file, {'hyperspectral_image': normalized_hyperspectral_image, 'wavelengths': wavelengths})
 
 print(f"Hyperspectral image saved to {output_mat_file}")
