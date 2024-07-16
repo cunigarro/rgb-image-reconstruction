@@ -1,4 +1,5 @@
 from torch.utils.data import Dataset
+import scipy.io as sio
 import h5py
 import cv2
 import os
@@ -27,9 +28,14 @@ class RGBToHyperSpectralDataset(Dataset):
         rgb_image = np.dstack((rgb_image, nir_average))
         rgb_image = rgb_image.astype(np.float32) / 255.0
 
-        with h5py.File(hyperspectral_path, 'r') as f:
-            hyperspectral_image = np.array(f['cube'], dtype=np.float32)
-            hyperspectral_image = np.transpose(hyperspectral_image, (2, 1, 0))
+        if 'dataset_01' in hyperspectral_path:
+            with h5py.File(hyperspectral_path, 'r') as f:
+                hyperspectral_image = np.array(f['cube'], dtype=np.float32)
+                hyperspectral_image = np.transpose(hyperspectral_image, (2, 1, 0))
+
+        if 'dataset_02' in hyperspectral_path:
+            mat = sio.loadmat(hyperspectral_path)
+            hyperspectral_image = mat['hyperspectral_image'].astype(np.float32)
 
         if self.transform:
             rgb_image = self.transform(rgb_image)
