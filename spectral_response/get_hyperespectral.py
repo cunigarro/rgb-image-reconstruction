@@ -5,7 +5,7 @@ import scipy.io as sio
 
 def load_spectral_response(csv_path):
     df = pd.read_csv(csv_path)
-    wavelengths = df.values[:,0].astype(float)
+    wavelengths = df.values[:, 0].astype(float)
     response_matrix = df.values[:, 1:].astype(float)
     return wavelengths, response_matrix
 
@@ -20,7 +20,13 @@ def rgb_to_hyperspectral(rgb_image, response_matrix):
 
     return hyperspectral_image
 
-rgb_image_path = './dataset/Valid_RGB/ARAD_1K_0901.jpg'
+def normalize_image(image):
+    min_val = np.min(image)
+    max_val = np.max(image)
+    normalized_image = (image - min_val) / (max_val - min_val)
+    return normalized_image
+
+rgb_image_path = './dataset_02/Train_RGB/rgb_13.jpg'
 rgb_image = cv2.imread(rgb_image_path)
 
 csv_path = './spectral_response/spectral_response_similar_to_xn9/1_xiaomi_12s_rear_ultrawide_camera.csv'
@@ -28,7 +34,9 @@ wavelengths, response_matrix = load_spectral_response(csv_path)
 
 hyperspectral_image = rgb_to_hyperspectral(rgb_image, response_matrix)
 
+normalized_hyperspectral_image = normalize_image(hyperspectral_image)
+
 output_mat_file = './hyperspectral_image.mat'
-sio.savemat(output_mat_file, {'hyperspectral_image': hyperspectral_image, 'wavelengths': wavelengths})
+sio.savemat(output_mat_file, {'cube': normalized_hyperspectral_image, 'wavelengths': wavelengths})
 
 print(f"Hyperspectral image saved to {output_mat_file}")
