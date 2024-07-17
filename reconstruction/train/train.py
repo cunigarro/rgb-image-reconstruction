@@ -10,8 +10,7 @@ from train_dataset import RGBToHyperSpectralDataset
 dataset_dir = './dataset_02'
 
 train_transforms = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Resize((924,691))
+    transforms.ToTensor()
 ])
 
 rgb_dir = f'{dataset_dir}/train_rgb'
