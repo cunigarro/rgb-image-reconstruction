@@ -26,7 +26,9 @@ def normalize_image(image):
     normalized_image = (image - min_val) / (max_val - min_val)
     return normalized_image
 
-rgb_image_path = './dataset_02/Train_RGB/rgb_13.jpg'
+image_title = 'rgb_13'
+
+rgb_image_path = f'./dataset_02/Train_RGB/{image_title}.jpg'
 rgb_image = cv2.imread(rgb_image_path)
 
 csv_path = './spectral_response/spectral_response_similar_to_xn9/1_xiaomi_12s_rear_ultrawide_camera.csv'
@@ -36,7 +38,7 @@ hyperspectral_image = rgb_to_hyperspectral(rgb_image, response_matrix)
 
 normalized_hyperspectral_image = normalize_image(hyperspectral_image)
 
-output_mat_file = './hyperspectral_image.mat'
-sio.savemat(output_mat_file, {'hyperspectral_image': normalized_hyperspectral_image, 'wavelengths': wavelengths})
+output_mat_file = f'./{image_title}.mat'
+sio.savemat(output_mat_file, {'cube': normalized_hyperspectral_image, 'wavelengths': wavelengths})
 
 print(f"Hyperspectral image saved to {output_mat_file}")

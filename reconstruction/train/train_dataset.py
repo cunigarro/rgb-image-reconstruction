@@ -35,7 +35,7 @@ class RGBToHyperSpectralDataset(Dataset):
 
         if 'dataset_02' in hyperspectral_path:
             mat = sio.loadmat(hyperspectral_path)
-            hyperspectral_image = mat['hyperspectral_image'].astype(np.float32)
+            hyperspectral_image = mat['cube'].astype(np.float32)
 
         if self.transform:
             rgb_image = self.transform(rgb_image)

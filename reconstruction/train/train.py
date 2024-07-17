@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 from architecture import RGBToHyperSpectralNet
 from train_dataset import RGBToHyperSpectralDataset
 
+# Configuration
 dataset_dir = './dataset_02'
+epochs = 13
 
 train_transforms = transforms.Compose([
     transforms.ToTensor()
@@ -33,7 +35,7 @@ optimizer = optim.Adam(net.parameters(), lr=0.001)
 train_losses = []
 val_losses = []
 
-for epoch in range(10):
+for epoch in range(epochs):
     net.train()
     for rgb_images, hyperspectral_images in dataloader_train:
         optimizer.zero_grad()
@@ -64,7 +66,8 @@ print("Training complete")
 
 plt.figure(figsize=(10, 5))
 plt.plot(train_losses, label='Training Loss')
-plt.plot(val_losses, label='Validation Loss')
+if 'dataset_01' in dataset_dir:
+    plt.plot(val_losses, label='Validation Loss')
 plt.xlabel('Iterations')
 plt.ylabel('Loss')
 plt.title('Training and Validation Loss')
