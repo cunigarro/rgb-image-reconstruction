@@ -46,7 +46,7 @@ for epoch in range(epochs):
         train_losses.append(loss.item())
 
     if 'dataset_02' in dataset_dir:
-        print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}')
+        print(f'Epoch [{epoch+1}/{epochs}], Training Loss: {np.mean(train_losses):.4f}')
 
     if 'dataset_01' in dataset_dir:
         net.eval()
@@ -56,7 +56,7 @@ for epoch in range(epochs):
                 loss_val = criterion(outputs_val, hyperspectral_images_val)
                 val_losses.append(loss_val.item())
 
-        print(f'Epoch [{epoch+1}/10], Training Loss: {np.mean(train_losses):.4f}, Validation Loss: {np.mean(val_losses):.4f}')
+        print(f'Epoch [{epoch+1}/{epochs}], Training Loss: {np.mean(train_losses):.4f}, Validation Loss: {np.mean(val_losses):.4f}')
 
 model_path = './model_weights.pth'
 save(net.state_dict(), model_path)
@@ -64,13 +64,16 @@ print(f"Model weights saved to {model_path}")
 
 print("Training complete")
 
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(epochs, round(epochs / 2)))
 plt.plot(train_losses, label='Training Loss')
 if 'dataset_01' in dataset_dir:
     plt.plot(val_losses, label='Validation Loss')
 plt.xlabel('Iterations')
 plt.ylabel('Loss')
-plt.title('Training and Validation Loss')
+if 'dataset_01' in dataset_dir:
+    plt.title('Training and Validation Loss')
+else:
+    plt.title('Training')
 plt.legend()
 plt.grid(True)
 plt.show()
