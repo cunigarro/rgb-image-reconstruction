@@ -8,7 +8,7 @@ from architecture import RGBToHyperSpectralNet
 from train_dataset import RGBToHyperSpectralDataset
 
 # Configuration
-dataset_dir = './dataset_02'
+dataset_dir = './dataset'
 epochs = 13
 
 train_transforms = transforms.Compose([
