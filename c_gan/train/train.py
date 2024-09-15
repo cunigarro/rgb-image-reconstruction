@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -6,6 +7,9 @@ from discrimitator import NIRDiscriminator
 from dataset import RGBNIRDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
+
+g_losses = []
+d_losses = []
 
 def main():
     lr = 0.0002
@@ -71,10 +75,25 @@ def main():
             d_loss.backward()
             optimizer_D.step()
 
+            g_losses.append(g_loss.item())
+            d_losses.append(d_loss.item())
+
             print(
                 f"[Epoch {epoch}/{n_epochs}] [Batch {i}/{len(dataloader)}] "
                 f"[D loss: {d_loss.item()}] [G loss: {g_loss.item()}]"
             )
+
+    torch.save(generator.state_dict(), 'generator.pth')
+    torch.save(discriminator.state_dict(), 'discriminator.pth')
+
+    plt.figure(figsize=(10,5))
+    plt.title("Generator and Discriminator Loss During Training")
+    plt.plot(g_losses, label="G Loss")
+    plt.plot(d_losses, label="D Loss")
+    plt.xlabel("Iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.show()
 
 if __name__ == '__main__':
     main()
