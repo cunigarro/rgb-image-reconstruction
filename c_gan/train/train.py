@@ -15,7 +15,7 @@ n_epochs = 100
 batch_size = 64
 dataset_dir = './dataset'
 rgb_dir = f'{dataset_dir}/rgb_images'
-nir_dir = f'{dataset_dir}nir_images'
+nir_dir = f'{dataset_dir}/nir_images'
 
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
