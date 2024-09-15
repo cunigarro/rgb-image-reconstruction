@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-import numpy as np
 
 class NIRDiscriminator(nn.Module):
     def __init__(self):
@@ -16,7 +14,7 @@ class NIRDiscriminator(nn.Module):
             nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Flatten(),
-            nn.Linear(256 * 16 * 16, 1),
+            nn.Linear(256 * 32 * 32, 1),
             nn.Sigmoid()
         )
 
