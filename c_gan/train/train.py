@@ -8,7 +8,6 @@ from dataset import RGBNIRDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-# Hiperparámetros
 lr = 0.0002
 b1 = 0.5
 b2 = 0.999
