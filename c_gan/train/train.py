@@ -12,8 +12,8 @@ g_losses = []
 d_losses = []
 
 def main():
-    lr = 0.0002
-    b1 = 0.5
+    lr = 0.0002 # Learning rate
+    b1 = 0.5 # Betas (b1, b2) for the Adam optimizer: values used to control momentum in gradient updates
     b2 = 0.999
     n_epochs = 100
     batch_size = 64

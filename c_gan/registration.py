@@ -41,10 +41,10 @@ def register_images(reference_img, target_img):
         print("No se encontraron suficientes emparejamientos.")
         return None
 
-nir_img = cv2.imread('nir_image.png')
-red_img = cv2.imread('red_image.png'
+ref_image = cv2.imread('./ref_image.jpg')
+target_image = cv2.imread('./target_image.jpg')
 
-registered_red_img = register_images(nir_img, red_img)
+registered_red_img = register_images(ref_image, target_image)
 
 if registered_red_img is not None:
     cv2.imshow('Imagen Registrada', registered_red_img)
