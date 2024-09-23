@@ -5,8 +5,7 @@ import os
 def register_images(reference_img, target_img):
     """
     Registra la imagen 'target_img' a la imagen 'reference_img' usando SIFT y homografía.
-
-    Luego recorta ambas imágenes registradas al centro, con un tamaño fijo de 416x416 píxeles.
+    Luego recorta ambas imágenes según el área superpuesta después del registro.
 
     :param reference_img: Imagen de referencia (RGB)
     :param target_img: Imagen a registrar (NIR)
@@ -39,39 +38,37 @@ def register_images(reference_img, target_img):
         height, width, channels = reference_img.shape
         registered_img = cv2.warpPerspective(target_img, homography_matrix, (width, height))
 
-        ref_cropped, registered_cropped = crop_center(reference_img, registered_img, 416, 416)
+        ref_cropped, registered_cropped = crop_to_overlap_square(reference_img, registered_img)
 
         return ref_cropped, registered_cropped
     else:
         print("No se encontraron suficientes emparejamientos.")
         return None, None
 
-def crop_center(ref_img, target_img, crop_height, crop_width):
+def crop_to_overlap_square(ref_img, target_img):
     """
-    Recorta ambas imágenes al centro con el tamaño especificado.
+    Recorta ambas imágenes según el área superpuesta después del registro.
 
-    :param ref_img: Imagen de referencia
-    :param target_img: Imagen objetivo registrada
-    :param crop_height: Altura deseada del recorte
-    :param crop_width: Anchura deseada del recorte
-    :return: Imágenes recortadas
+    :param ref_img: Imagen de referencia (RGB)
+    :param target_img: Imagen registrada (NIR)
+    :return: Imágenes recortadas que corresponden al área de superposición
     """
-    ref_height, ref_width, _ = ref_img.shape
-    target_height, target_width = target_img.shape[:2]
 
-    ref_x = (ref_width - crop_width) // 2
-    ref_y = (ref_height - crop_height) // 2
-    target_x = (target_width - crop_width) // 2
-    target_y = (target_height - crop_height) // 2
+    target_mask = (target_img > 0).astype(np.uint8)
+    target_mask = cv2.cvtColor(target_mask, cv2.COLOR_BGR2GRAY)
 
-    ref_cropped = ref_img[ref_y:ref_y + crop_height, ref_x:ref_x + crop_width]
-    target_cropped = target_img[target_y:target_y + crop_height, target_x:target_x + crop_width]
+    x, y, w, h = cv2.boundingRect(target_mask)
+
+    side_length = min(w, h)
+
+    ref_cropped = ref_img[y:y+side_length, x:x+side_length]
+    target_cropped = target_img[y:y+side_length, x:x+side_length]
 
     return ref_cropped, target_cropped
 
 def register_image_pairs(rgb_images_dir, nir_images_dir, output_dir):
     """
-    Registra pares de imágenes RGB y NIR de dos directorios, luego recorta las imágenes registradas a 416x416 píxeles.
+    Registra pares de imágenes RGB y NIR de dos directorios, luego recorta las imágenes según el área superpuesta.
 
     :param rgb_images_dir: Directorio con las imágenes RGB (de referencia)
     :param nir_images_dir: Directorio con las imágenes NIR (a registrar)
