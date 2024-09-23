@@ -38,31 +38,35 @@ def register_images(reference_img, target_img):
         height, width, channels = reference_img.shape
         registered_img = cv2.warpPerspective(target_img, homography_matrix, (width, height))
 
-        ref_cropped, registered_cropped = crop_to_overlap_square(reference_img, registered_img)
+        ref_cropped, registered_cropped = crop_to_overlap(reference_img, registered_img)
 
         return ref_cropped, registered_cropped
     else:
         print("No se encontraron suficientes emparejamientos.")
         return None, None
 
-def crop_to_overlap_square(ref_img, target_img):
+def crop_to_overlap(ref_img, target_img):
     """
-    Recorta ambas imágenes según el área superpuesta después del registro.
+    Recorta ambas imágenes según el área superpuesta después del registro, evitando zonas negras.
 
     :param ref_img: Imagen de referencia (NIR)
     :param target_img: Imagen registrada (RGB)
-    :return: Imágenes recortadas que corresponden al área de superposición
+    :return: Imágenes recortadas que corresponden al área de superposición sin zonas negras.
     """
 
-    target_mask = (target_img > 0).astype(np.uint8)
-    target_mask = cv2.cvtColor(target_mask, cv2.COLOR_BGR2GRAY)
+    # Crear una máscara para las áreas válidas en ambas imágenes
+    ref_mask = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY) > 0
+    target_mask = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY) > 0
 
-    x, y, w, h = cv2.boundingRect(target_mask)
+    # Crear una máscara común que represente el área sin zonas negras
+    combined_mask = ref_mask & target_mask
 
-    side_length = min(w, h)
+    # Encontrar los límites (bounding box) de la región válida
+    x, y, w, h = cv2.boundingRect(combined_mask.astype(np.uint8))
 
-    ref_cropped = ref_img[y:y+side_length, x:x+side_length]
-    target_cropped = target_img[y:y+side_length, x:x+side_length]
+    # Recortar ambas imágenes según los límites encontrados
+    ref_cropped = ref_img[y:y+h, x:x+w]
+    target_cropped = target_img[y:y+h, x:x+w]
 
     return ref_cropped, target_cropped
 
