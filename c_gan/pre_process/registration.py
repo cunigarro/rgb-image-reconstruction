@@ -4,11 +4,11 @@ import os
 
 def register_images(reference_img, target_img):
     """
-    Registra la imagen 'target_img' a la imagen 'reference_img' usando SIFT y homografía.
+    Registra la imagen 'target_img' (RGB) a la imagen 'reference_img' (NIR) usando SIFT y homografía.
 
-    :param reference_img: Imagen de referencia (RGB)
-    :param target_img: Imagen a registrar (NIR)
-    :return: Imagen registrada (NIR)
+    :param reference_img: Imagen de referencia (NIR)
+    :param target_img: Imagen a registrar (RGB)
+    :return: Imagen registrada (RGB)
     """
 
     ref_gray = cv2.cvtColor(reference_img, cv2.COLOR_BGR2GRAY)
@@ -42,47 +42,47 @@ def register_images(reference_img, target_img):
         print("No se encontraron suficientes emparejamientos.")
         return None
 
-def register_image_pairs(rgb_images_dir, nir_images_dir, output_dir):
+def register_image_pairs(nir_images_dir, rgb_images_dir, output_dir):
     """
-    Registra pares de imágenes RGB y NIR de dos directorios.
+    Registra pares de imágenes NIR y RGB de dos directorios.
 
-    :param rgb_images_dir: Directorio con las imágenes RGB (de referencia)
-    :param nir_images_dir: Directorio con las imágenes NIR (a registrar)
-    :param output_dir: Directorio donde se guardarán las imágenes NIR registradas
+    :param nir_images_dir: Directorio con las imágenes NIR (de referencia)
+    :param rgb_images_dir: Directorio con las imágenes RGB (a registrar)
+    :param output_dir: Directorio donde se guardarán las imágenes RGB registradas
     """
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    rgb_images_files = sorted(os.listdir(rgb_images_dir))
     nir_images_files = sorted(os.listdir(nir_images_dir))
+    rgb_images_files = sorted(os.listdir(rgb_images_dir))
 
-    for rgb_file, nir_file in zip(rgb_images_files, nir_images_files):
-        rgb_image_path = os.path.join(rgb_images_dir, rgb_file)
+    for nir_file, rgb_file in zip(nir_images_files, rgb_images_files):
         nir_image_path = os.path.join(nir_images_dir, nir_file)
+        rgb_image_path = os.path.join(rgb_images_dir, rgb_file)
 
-        rgb_image = cv2.imread(rgb_image_path)
         nir_image = cv2.imread(nir_image_path)
+        rgb_image = cv2.imread(rgb_image_path)
 
-        if rgb_image is None or nir_image is None:
-            print(f"No se pudo cargar alguna de las imágenes: {rgb_file}, {nir_file}")
+        if nir_image is None or rgb_image is None:
+            print(f"No se pudo cargar alguna de las imágenes: {nir_file}, {rgb_file}")
             continue
 
-        registered_nir_img = register_images(rgb_image, nir_image)
+        registered_rgb_img = register_images(nir_image, rgb_image)
 
-        if registered_nir_img is not None:
-            output_image_path = os.path.join(output_dir, nir_file)
-            cv2.imwrite(output_image_path, registered_nir_img)
-            print(f"Imagen NIR registrada guardada en: {output_image_path}")
+        if registered_rgb_img is not None:
+            output_image_path = os.path.join(output_dir, rgb_file)
+            cv2.imwrite(output_image_path, registered_rgb_img)
+            print(f"Imagen RGB registrada guardada en: {output_image_path}")
         else:
-            print(f"No se pudo registrar la imagen: {nir_file}")
+            print(f"No se pudo registrar la imagen: {rgb_file}")
 
 def main():
-    rgb_images_dir = './dataset/rgb_images'
     nir_images_dir = './dataset/nir_images'
-    output_dir = './registered_nir_images'
+    rgb_images_dir = './dataset/rgb_images'
+    output_dir = './registered_rgb_images'
 
-    register_image_pairs(rgb_images_dir, nir_images_dir, output_dir)
+    register_image_pairs(nir_images_dir, rgb_images_dir, output_dir)
 
 if __name__ == "__main__":
     main()
