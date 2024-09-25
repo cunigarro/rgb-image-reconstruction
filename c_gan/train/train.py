@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 from generator import RGBToNIRGenerator
 from discrimitator import NIRDiscriminator
 from dataset import RGBNIRDataset
@@ -10,14 +11,22 @@ from torchvision import transforms
 
 g_losses = []
 d_losses = []
+msrae_list = []
+rmse_list = []
+
+def calculate_msrae(pred, target):
+    return torch.mean(torch.abs(pred - target) / (torch.abs(target) + 1e-6))
+
+def calculate_rmse(pred, target):
+    return torch.sqrt(torch.mean((pred - target) ** 2))
 
 def main():
-    lr = 0.0002 # Learning rate
-    b1 = 0.5 # Betas (b1, b2) for the Adam optimizer: values used to control momentum in gradient updates
+    lr = 0.0002
+    b1 = 0.5
     b2 = 0.999
     n_epochs = 100
     batch_size = 64
-    dataset_dir = './dataset_registered'
+    dataset_dir = './dataset'
     rgb_dir = f'{dataset_dir}/rgb_images'
     nir_dir = f'{dataset_dir}/nir_images'
 
@@ -78,9 +87,16 @@ def main():
             g_losses.append(g_loss.item())
             d_losses.append(d_loss.item())
 
+            msrae = calculate_msrae(gen_imgs, real_imgs)
+            rmse = calculate_rmse(gen_imgs, real_imgs)
+
+            msrae_list.append(msrae.item())
+            rmse_list.append(rmse.item())
+
             print(
                 f"[Epoch {epoch}/{n_epochs}] [Batch {i}/{len(dataloader)}] "
-                f"[D loss: {d_loss.item()}] [G loss: {g_loss.item()}]"
+                f"[D loss: {d_loss.item()}] [G loss: {g_loss.item()}] "
+                f"[MSRAE: {msrae.item()}] [RMSE: {rmse.item()}]"
             )
 
     torch.save(generator.state_dict(), 'generator.pth')
@@ -92,6 +108,15 @@ def main():
     plt.plot(d_losses, label="D Loss")
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
+    plt.legend()
+    plt.show()
+
+    plt.figure(figsize=(10,5))
+    plt.title("MSRAE and RMSE During Training")
+    plt.plot(msrae_list, label="MSRAE")
+    plt.plot(rmse_list, label="RMSE")
+    plt.xlabel("Iterations")
+    plt.ylabel("Error")
     plt.legend()
     plt.show()
 
