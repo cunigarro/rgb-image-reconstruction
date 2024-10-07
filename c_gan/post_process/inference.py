@@ -3,7 +3,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from train.generator import RGBToNIRGenerator
+from c_gan.train.generator import RGBToNIRGenerator
 
 generator_weights_path = './generator.pth'
 
@@ -17,7 +17,7 @@ transform = transforms.Compose([
     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 ])
 
-image_path = './rgb_image.jpeg'
+image_path = './rgb_image.jpg'
 image_rgb = Image.open(image_path).convert('RGB')
 
 image_rgb_tensor = transform(image_rgb).unsqueeze(0)
@@ -31,7 +31,7 @@ nir_generated_image = transforms.ToPILImage()(nir_generated_tensor)
 
 nir_generated_image.show()
 
-nir_generated_image.save('generated_nir_image.png')
+nir_generated_image.save('generated_nir_image.jpg')
 
 plt.imshow(nir_generated_image, cmap='gray')
 plt.show()
