@@ -110,7 +110,7 @@ def main():
     cv2.imwrite('cropped_RED.jpg', cropped_RED)
     cv2.imwrite('cropped_NIR.jpg', cropped_NIR)
 
-    merged_fix_stb = cv2.merge((stb_GRE, stb_RED, stb_NIR))
+    merged_fix_stb = cv2.merge((stb_RED, stb_NIR, img_NULL))
 
     print("La primera imagen que se genera simplemente superpone las imágenes sin alinear \n Cerrar la ventana para continuar \n")
     cv2.imshow('frame', merged_fix_bad)
