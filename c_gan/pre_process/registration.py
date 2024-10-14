@@ -1,103 +1,134 @@
 import cv2
 import numpy as np
-import os
 
-def register_images(reference_img, target_img):
-    ref_gray = cv2.cvtColor(reference_img, cv2.COLOR_BGR2GRAY)
-    target_gray = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
+class ProyectividadOpenCV():
 
-    sift = cv2.SIFT_create()
-    keypoints_ref, descriptors_ref = sift.detectAndCompute(ref_gray, None)
-    keypoints_target, descriptors_target = sift.detectAndCompute(target_gray, None)
+    error_reproyeccion = 4
 
-    index_params = dict(algorithm=1, trees=5)
-    search_params = dict(checks=50)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(descriptors_target, descriptors_ref, k=2)
+    def __init__(self):
+        pass
 
-    good_matches = []
-    for m, n in matches:
-        if m.distance < 0.7 * n.distance:
-            good_matches.append(m)
+    def estabilizador_imagen(self, imagen_base, imagen_a_estabilizar, radio=0.75, error_reproyeccion=4.0,
+                             coincidencias=False):
 
-    if len(good_matches) > 10:
-        target_pts = np.float32([keypoints_target[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-        ref_pts = np.float32([keypoints_ref[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+        (kpsBase, featuresBase) = self.obtener_puntos_interes(imagen_base)
+        (kpsAdicional, featuresAdicional) = self.obtener_puntos_interes(imagen_a_estabilizar)
 
-        homography_matrix, mask = cv2.findHomography(target_pts, ref_pts, cv2.RANSAC, 5.0)
+        M = self.encontrar_coincidencias(imagen_base, imagen_a_estabilizar, kpsBase, kpsAdicional, featuresBase,
+                                         featuresAdicional, radio)
 
-        height, width, channels = reference_img.shape
-        registered_img = cv2.warpPerspective(target_img, homography_matrix, (width, height))
+        if M is None:
+            print("pocas coincidencias")
+            return None
 
-        ref_cropped, registered_cropped = crop_to_overlap_square(reference_img, registered_img)
+        if len(M) > 4:
+            (H, status) = self.encontrar_H_RANSAC_Estable(M, kpsBase, kpsAdicional, error_reproyeccion)
+            estabilizada = cv2.warpPerspective(imagen_base, H, (imagen_base.shape[1], imagen_base.shape[0]))
+            return estabilizada
+        print("sin coincidencias")
+        return None
 
-        return ref_cropped, registered_cropped
-    else:
-        print("No se encontraron suficientes emparejamientos.")
-        return None, None
+    def img_alignment_sequoia(self, img_RGB, img_GRE, img_base_NIR, img_RED, img_REG, width, height):
 
-def crop_to_overlap_square(ref_img, target_img):
-    ref_mask = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY) > 0
-    target_mask = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY) > 0
+        b_RGB = cv2.resize(img_RGB, (width, height), interpolation=cv2.INTER_LINEAR)
+        b_GRE = cv2.resize(img_GRE, (width, height), interpolation=cv2.INTER_LINEAR)
+        base_NIR = cv2.resize(img_base_NIR, (width, height), interpolation=cv2.INTER_LINEAR)
+        b_RED = cv2.resize(img_RED, (width, height), interpolation=cv2.INTER_LINEAR)
+        b_REG = cv2.resize(img_REG, (width, height), interpolation=cv2.INTER_LINEAR)
 
-    combined_mask = ref_mask & target_mask
+        stb_GRE = self.estabilizador_imagen(b_GRE, base_NIR)
+        stb_RGB = self.estabilizador_imagen(b_RGB, base_NIR)
+        stb_RED = self.estabilizador_imagen(b_RED, base_NIR)
+        stb_REG = self.estabilizador_imagen(b_REG, base_NIR)
 
-    x, y, w, h = cv2.boundingRect(combined_mask.astype(np.uint8))
+        return stb_RGB, stb_GRE, base_NIR, stb_RED, stb_REG
 
-    side_length = min(w, h)
+    def obtener_puntos_interes(self, imagen):
 
-    center_x = x + w // 2
-    center_y = y + h // 2
+        descriptor = cv2.SIFT_create()
+        (kps, features) = descriptor.detectAndCompute(imagen, None)
 
-    half_side = side_length // 2
-    x_start = center_x - half_side
-    y_start = center_y - half_side
+        return kps, features
 
-    ref_cropped = ref_img[y_start:y_start+side_length, x_start:x_start+side_length]
-    target_cropped = target_img[y_start:y_start+side_length, x_start:x_start+side_length]
+    def encontrar_coincidencias(self, img1, img2, kpsA, kpsB, featuresA, featuresB, ratio):
 
-    return ref_cropped, target_cropped
+        matcher = cv2.DescriptorMatcher_create("BruteForce")
+        rawMatches = matcher.knnMatch(featuresA, featuresB, 2)
+        matches = []
 
-def register_image_pairs(nir_images_dir, rgb_images_dir, output_dir):
-    nir_output_dir = os.path.join(output_dir, 'nir_images')
-    rgb_output_dir = os.path.join(output_dir, 'rgb_images')
+        for m in rawMatches:
+            if len(m) == 2 and m[0].distance < m[1].distance * ratio:
+                matches.append((m[0].trainIdx, m[0].queryIdx))
 
-    if not os.path.exists(nir_output_dir):
-        os.makedirs(nir_output_dir)
-    if not os.path.exists(rgb_output_dir):
-        os.makedirs(rgb_output_dir)
+        return matches
 
-    nir_images_files = sorted(os.listdir(nir_images_dir))
-    rgb_images_files = sorted(os.listdir(rgb_images_dir))
+    def encontrar_H_RANSAC_Estable(self, matches, kpsA, kpsB, reprojThresh):
 
-    for nir_file, rgb_file in zip(nir_images_files, rgb_images_files):
-        nir_image_path = os.path.join(nir_images_dir, nir_file)
-        rgb_image_path = os.path.join(rgb_images_dir, rgb_file)
+        if len(matches) > 4:
+            ptsA = np.float32([kpsA[i].pt for (_, i) in matches])
+            ptsB = np.float32([kpsB[i].pt for (i, _) in matches])
 
-        nir_image = cv2.imread(nir_image_path)
-        rgb_image = cv2.imread(rgb_image_path)
+            (H, status) = cv2.findHomography(ptsA, ptsB, cv2.RANSAC, reprojThresh)
 
-        if nir_image is None or rgb_image is None:
-            print(f"No se pudo cargar alguna de las imágenes: {nir_file}, {rgb_file}")
-            continue
+            return (H, status)
 
-        ref_cropped, registered_cropped = register_images(nir_image, rgb_image)
-
-        if ref_cropped is not None and registered_cropped is not None:
-            output_nir_image_path = os.path.join(nir_output_dir, nir_file)
-            output_rgb_image_path = os.path.join(rgb_output_dir, rgb_file)
-            cv2.imwrite(output_nir_image_path, ref_cropped)
-            cv2.imwrite(output_rgb_image_path, registered_cropped)
-            print(f"Imágenes registradas y recortadas guardadas en: {output_nir_image_path}, {output_rgb_image_path}")
-        else:
-            print(f"No se pudo registrar la imagen: {rgb_file}")
+        return None
 
 def main():
-    nir_images_dir = './dataset/nir_images'
-    rgb_images_dir = './dataset/rgb_images'
-    output_dir = './dataset_registered'
+    print("Comenzado proceso con imágenes de prueba propias \n")
+    print("Por favor ingrese ancho y alto deseado para las imágenes \npor ejemplo 700,500. De no asignarlos, los valores por defecto serán 700X500 \n \n")
+    print("Ancho=")
+    width_str = input()
+    print("Alto=")
+    height_str = input()
 
-    register_image_pairs(nir_images_dir, rgb_images_dir, output_dir)
+    width = int(width_str)
+    height = int(height_str)
 
-if __name__ == "__main__":
+    example_2 = ProyectividadOpenCV()
+
+    img_RGB = cv2.imread("c_gan/pre_process/sequoia_images/img_RGB.JPG", 0)
+    img_GRE = cv2.imread("c_gan/pre_process/sequoia_images/img_GRE.TIF", 0)
+    img_NIR = cv2.imread("c_gan/pre_process/sequoia_images/img_NIR.TIF", 0)
+    img_RED = cv2.imread("c_gan/pre_process/sequoia_images/img_RED.TIF", 0)
+    img_REG = cv2.imread("c_gan/pre_process/sequoia_images/img_REG.TIF", 0)
+
+    merged_fix_bad = cv2.merge((img_GRE, img_RED, img_NIR))
+    merged_fix_bad = cv2.resize(merged_fix_bad, (width, height), interpolation=cv2.INTER_LINEAR)
+
+    stb_RGB, stb_GRE, stb_NIR, stb_RED, stb_REG = example_2.img_alignment_sequoia(img_RGB, img_GRE, img_NIR,
+                                                                                    img_RED, img_REG, width, height)
+
+    mask_GRE = (stb_GRE > 0).astype(np.uint8)
+    mask_REG = (stb_REG > 0).astype(np.uint8)
+    mask_NIR = (stb_NIR > 0).astype(np.uint8)
+
+    mask_intersection = cv2.bitwise_and(mask_GRE, mask_REG)
+    mask_intersection = cv2.bitwise_and(mask_intersection, mask_NIR)
+
+    contours, _ = cv2.findContours(mask_intersection, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    x, y, w, h = cv2.boundingRect(contours[0])
+
+    cropped_GRE = stb_GRE[y:y+h, x:x+w]
+    cropped_REG = stb_REG[y:y+h, x:x+w]
+    cropped_NIR = stb_NIR[y:y+h, x:x+w]
+
+    cv2.imwrite('cropped_GRE.jpg', cropped_GRE)
+    cv2.imwrite('cropped_REG.jpg', cropped_REG)
+    cv2.imwrite('cropped_NIR.jpg', cropped_NIR)
+
+    merged_fix_stb = cv2.merge((stb_GRE, stb_RED, stb_NIR))
+
+    print("La primera imagen que se genera simplemente superpone las imágenes sin alinear \n Cerrar la ventana para continuar \n")
+    cv2.imshow('frame', merged_fix_bad)
+    cv2.waitKey(0)
+
+    print("La siguiente imagen si se encuentra debidamente alineada. Cerrar la ventana para terminar")
+    cv2.imshow('frame', merged_fix_stb)
+    cv2.waitKey(0)
+
+    cv2.destroyAllWindows()
+
+if __name__ == '__main__':
     main()
