@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from PIL import Image, ImageOps
 
 class ProyectividadOpenCV():
 
@@ -28,20 +29,12 @@ class ProyectividadOpenCV():
         print("sin coincidencias")
         return None
 
-    def img_alignment_sequoia(self, img_RGB, img_GRE, img_base_NIR, img_RED, img_REG, width, height):
+    def img_alignment_sequoia(self, img_RGB, stb_NIR, img_RED):
 
-        b_RGB = cv2.resize(img_RGB, (width, height), interpolation=cv2.INTER_LINEAR)
-        b_GRE = cv2.resize(img_GRE, (width, height), interpolation=cv2.INTER_LINEAR)
-        base_NIR = cv2.resize(img_base_NIR, (width, height), interpolation=cv2.INTER_LINEAR)
-        b_RED = cv2.resize(img_RED, (width, height), interpolation=cv2.INTER_LINEAR)
-        b_REG = cv2.resize(img_REG, (width, height), interpolation=cv2.INTER_LINEAR)
+        stb_RGB = self.estabilizador_imagen(img_RGB, stb_NIR)
+        stb_RED = self.estabilizador_imagen(img_RED, stb_NIR)
 
-        stb_GRE = self.estabilizador_imagen(b_GRE, base_NIR)
-        stb_RGB = self.estabilizador_imagen(b_RGB, base_NIR)
-        stb_RED = self.estabilizador_imagen(b_RED, base_NIR)
-        stb_REG = self.estabilizador_imagen(b_REG, base_NIR)
-
-        return stb_RGB, stb_GRE, base_NIR, stb_RED, stb_REG
+        return stb_RGB, stb_NIR, stb_RED
 
     def obtener_puntos_interes(self, imagen):
 
@@ -87,35 +80,34 @@ def main():
 
     example_2 = ProyectividadOpenCV()
 
-    img_RGB = cv2.imread("c_gan/pre_process/sequoia_images/img_RGB.JPG", 0)
-    img_GRE = cv2.imread("c_gan/pre_process/sequoia_images/img_GRE.TIF", 0)
+    img_RGB = Image.open('c_gan/pre_process/sequoia_images/img_RGB.JPG')
+    img_RGB = ImageOps.exif_transpose(img_RGB)
+    img_RGB = np.asarray(img_RGB)
     img_NIR = cv2.imread("c_gan/pre_process/sequoia_images/img_NIR.TIF", 0)
-    img_RED = cv2.imread("c_gan/pre_process/sequoia_images/img_RED.TIF", 0)
-    img_REG = cv2.imread("c_gan/pre_process/sequoia_images/img_REG.TIF", 0)
 
-    merged_fix_bad = cv2.merge((img_GRE, img_RED, img_NIR))
-    merged_fix_bad = cv2.resize(merged_fix_bad, (width, height), interpolation=cv2.INTER_LINEAR)
+    img_RED = img_RGB[:,:,0]
+    img_NULL = np.zeros(width*height, dtype=np.uint8).reshape(width,height)
 
-    stb_RGB, stb_GRE, stb_NIR, stb_RED, stb_REG = example_2.img_alignment_sequoia(img_RGB, img_GRE, img_NIR,
-                                                                                    img_RED, img_REG, width, height)
+    img_RED = cv2.resize(img_RED, (width, height), interpolation=cv2.INTER_LINEAR)
+    img_NULL = cv2.resize(img_NULL, (width, height), interpolation=cv2.INTER_LINEAR)
 
-    mask_GRE = (stb_GRE > 0).astype(np.uint8)
-    mask_REG = (stb_REG > 0).astype(np.uint8)
+    merged_fix_bad = cv2.merge((img_RED, img_NIR,img_NULL))
+
+    stb_RGB, stb_NIR, stb_RED = example_2.img_alignment_sequoia(img_RGB, img_NIR, img_RED)
+
     mask_NIR = (stb_NIR > 0).astype(np.uint8)
+    mask_RED = (stb_RED > 0).astype(np.uint8)
 
-    mask_intersection = cv2.bitwise_and(mask_GRE, mask_REG)
-    mask_intersection = cv2.bitwise_and(mask_intersection, mask_NIR)
+    mask_intersection = cv2.bitwise_and(mask_RED, mask_NIR)
 
     contours, _ = cv2.findContours(mask_intersection, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     x, y, w, h = cv2.boundingRect(contours[0])
 
-    cropped_GRE = stb_GRE[y:y+h, x:x+w]
-    cropped_REG = stb_REG[y:y+h, x:x+w]
+    cropped_RED = stb_RED[y:y+h, x:x+w]
     cropped_NIR = stb_NIR[y:y+h, x:x+w]
 
-    cv2.imwrite('cropped_GRE.jpg', cropped_GRE)
-    cv2.imwrite('cropped_REG.jpg', cropped_REG)
+    cv2.imwrite('cropped_RED.jpg', cropped_RED)
     cv2.imwrite('cropped_NIR.jpg', cropped_NIR)
 
     merged_fix_stb = cv2.merge((stb_GRE, stb_RED, stb_NIR))
