@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from dataset import SequoiaDatasetNIR
-from model import HSCNN_D_NIR_RE
+from model import HSCNN_D_NIR
 from metrics import compute_metrics
 
 # Paths de tus datos
@@ -13,7 +13,7 @@ dataset = SequoiaDatasetNIR(rgb_dir, target_dir)
 dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = HSCNN_D_NIR_RE().to(device)
+model = HSCNN_D_NIR().to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
