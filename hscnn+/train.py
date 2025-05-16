@@ -5,6 +5,7 @@ from dataset import SequoiaDatasetNIR_S3
 from model import HSCNN_D_NIR
 from metrics import compute_metrics
 import boto3
+from telegram import Bot
 
 def list_s3_files(bucket_name, prefix):
     s3 = boto3.client('s3')
@@ -45,3 +46,9 @@ for epoch in range(50):
     print(f"Epoch {epoch+1}, Loss: {running_loss / len(dataloader):.5f}")
 
 compute_metrics(model, dataloader, device)
+
+bot_token = '7248407303:AAEwITYB3KgY4Eff11Jhgyq5c8tC3bHVDkk'
+chat_id = '6411041440'
+
+bot = Bot(token=bot_token)
+bot.send_message(chat_id=chat_id, text="✅ Entrenamiento HSCNN-D finalizado.")
