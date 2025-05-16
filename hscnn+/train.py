@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from dataset import SequoiaDatasetNIR
 from model import HSCNN_D_NIR_RE
+from metrics import compute_metrics
 
 # Paths de tus datos
 rgb_dir = './dataset_registered/rgb_images'
@@ -30,3 +31,5 @@ for epoch in range(50):
         running_loss += loss.item()
 
     print(f"Epoch {epoch+1}, Loss: {running_loss / len(dataloader):.5f}")
+
+compute_metrics(model, dataloader, device)
