@@ -27,10 +27,9 @@ model = SRUNet(in_channels=3, out_channels=1).to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-# Archivos de log y modelo
+# Timestamp para archivos
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_path = f"training_log_srunet_{timestamp}.txt"
-model_path = f"srunet_model_{timestamp}.pt"
+log_path = f"training_log_hscnn_{timestamp}.txt"
 
 with open(log_path, "w") as log_file:
     start_time = datetime.now()
