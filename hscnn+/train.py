@@ -7,6 +7,7 @@ from model import HSCNN_D_NIR
 from metrics import compute_metrics
 import boto3
 from telegram import Bot
+from ..config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 def list_s3_files(bucket_name, prefix):
     s3 = boto3.client('s3')
@@ -47,8 +48,8 @@ for epoch in range(50):
     print(f"Epoch {epoch+1}, Loss: {running_loss / len(dataloader):.5f}")
 
 async def notify():
-    bot_token = '7248407303:AAEwITYB3KgY4Eff11Jhgyq5c8tC3bHVDkk'
-    chat_id = '6411041440'
+    bot_token = TELEGRAM_BOT_TOKEN
+    chat_id = TELEGRAM_CHAT_ID
     bot = Bot(token=bot_token)
     await bot.send_message(chat_id=chat_id, text="✅ Entrenamiento HSCNN-D finalizado.")
 
