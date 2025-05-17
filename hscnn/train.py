@@ -2,12 +2,12 @@ import asyncio
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from dataset import SequoiaDatasetNIR_S3
-from model import HSCNN_D_NIR
-from metrics import compute_metrics
+from hscnn.dataset import SequoiaDatasetNIR_S3
+from hscnn.model import HSCNN_D_NIR
+from hscnn.metrics import compute_metrics
 import boto3
 from telegram import Bot
-from ..config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 def list_s3_files(bucket_name, prefix):
     s3 = boto3.client('s3')
