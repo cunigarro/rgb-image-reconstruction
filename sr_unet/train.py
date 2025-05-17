@@ -3,24 +3,30 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from utils.dataset import SequoiaDatasetNIR_S3
-from hscnn.model import HSCNN_D_NIR
 from utils.list_s3_files import list_s3_files
 from utils.metrics import compute_metrics
 from telegram import Bot
 from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from sr_unet.model import SRUNet
 
+# Configuración
 bucket_name = 'dataset-rgb-nir-01'
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
+# Dataset y Dataloader
 dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys)
 dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
+# Dispositivo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = HSCNN_D_NIR().to(device)
+
+# Modelo y entrenamiento
+model = SRUNet(in_channels=3, out_channels=1).to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
+# Loop de entrenamiento
 for epoch in range(50):
     running_loss = 0.0
     for inputs, targets in dataloader:
@@ -36,11 +42,14 @@ for epoch in range(50):
 
     print(f"Epoch {epoch+1}, Loss: {running_loss / len(dataloader):.5f}")
 
+# Métricas
+compute_metrics(model, dataloader, device)
+
+# Notificación Telegram
 async def notify():
     bot_token = TELEGRAM_BOT_TOKEN
     chat_id = TELEGRAM_CHAT_ID
     bot = Bot(token=bot_token)
-    await bot.send_message(chat_id=chat_id, text="✅ Entrenamiento HSCNN-D finalizado.")
+    await bot.send_message(chat_id=chat_id, text="✅ Entrenamiento SRUNet finalizado.")
 
-compute_metrics(model, dataloader, device)
 asyncio.run(notify())

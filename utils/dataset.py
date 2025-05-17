@@ -3,7 +3,6 @@ import cv2
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-from io import BytesIO
 
 class SequoiaDatasetNIR_S3(Dataset):
     def __init__(self, bucket_name, rgb_keys, nir_keys, img_size=(394, 394), transform=None):
