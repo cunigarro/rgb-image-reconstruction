@@ -50,6 +50,6 @@ async def notify():
     bot_token = TELEGRAM_BOT_TOKEN
     chat_id = TELEGRAM_CHAT_ID
     bot = Bot(token=bot_token)
-    await bot.send_message(chat_id=chat_id, text="✅ Entrenamiento SRUNet finalizado.")
+    await bot.send_message(chat_id=chat_id, text="✅ Entrenamiento SRBFWU finalizado.")
 
 asyncio.run(notify())
