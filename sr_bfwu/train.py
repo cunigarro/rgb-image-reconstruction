@@ -2,6 +2,7 @@ import asyncio
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from datetime import datetime
 from utils.dataset import SequoiaDatasetNIR_S3
 from utils.list_s3_files import list_s3_files
 from utils.metrics import compute_metrics
@@ -26,24 +27,41 @@ model = SRBFWU_Net(in_channels=3, num_bands=1).to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-# Loop de entrenamiento
-for epoch in range(50):
-    running_loss = 0.0
-    for inputs, targets in dataloader:
-        inputs, targets = inputs.to(device), targets.to(device)
+# Archivo de log
+log_path = "training_log.txt"
+with open(log_path, "w") as log_file:
+    start_time = datetime.now()
+    log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+    # Loop de entrenamiento
+    for epoch in range(50):
+        running_loss = 0.0
+        for inputs, targets in dataloader:
+            inputs, targets = inputs.to(device), targets.to(device)
 
-        running_loss += loss.item()
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
 
-    print(f"Epoch {epoch+1}, Loss: {running_loss / len(dataloader):.5f}")
+            running_loss += loss.item()
 
-# Métricas
-compute_metrics(model, dataloader, device)
+        avg_loss = running_loss / len(dataloader)
+        log_line = f"Epoch {epoch+1}, Loss: {avg_loss:.5f}"
+        print(log_line)
+        log_file.write(log_line + "\n")
+
+    end_time = datetime.now()
+    log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
+    log_file.write(f"Duración total: {end_time - start_time}\n\n")
+
+    # Métricas
+    mrae, rmse, sam = compute_metrics(model, dataloader, device)
+    log_file.write("Métricas finales:\n")
+    log_file.write(f"MRAE: {mrae:.5f}\n")
+    log_file.write(f"RMSE: {rmse:.5f}\n")
+    log_file.write(f"SAM: {sam:.5f}\n")
 
 # Notificación Telegram
 async def notify():

@@ -8,6 +8,7 @@ from utils.metrics import compute_metrics
 from telegram import Bot
 from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from sr_unet.model import SRUNet
+from datetime import datetime
 
 # Configuración
 bucket_name = 'dataset-rgb-nir-01'
@@ -26,24 +27,43 @@ model = SRUNet(in_channels=3, out_channels=1).to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-# Loop de entrenamiento
-for epoch in range(50):
-    running_loss = 0.0
-    for inputs, targets in dataloader:
-        inputs, targets = inputs.to(device), targets.to(device)
+# Archivos de log y modelo
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_path = f"training_log_srunet_{timestamp}.txt"
+model_path = f"srunet_model_{timestamp}.pt"
 
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+with open(log_path, "w") as log_file:
+    start_time = datetime.now()
+    log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
-        running_loss += loss.item()
+    for epoch in range(50):
+        running_loss = 0.0
+        for inputs, targets in dataloader:
+            inputs, targets = inputs.to(device), targets.to(device)
 
-    print(f"Epoch {epoch+1}, Loss: {running_loss / len(dataloader):.5f}")
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
 
-# Métricas
-compute_metrics(model, dataloader, device)
+            running_loss += loss.item()
+
+        avg_loss = running_loss / len(dataloader)
+        log_line = f"Epoch {epoch+1}, Loss: {avg_loss:.5f}"
+        print(log_line)
+        log_file.write(log_line + "\n")
+
+    end_time = datetime.now()
+    log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
+    log_file.write(f"Duración total: {end_time - start_time}\n\n")
+
+    # Métricas
+    mrae, rmse, sam = compute_metrics(model, dataloader, device)
+    log_file.write("Métricas finales:\n")
+    log_file.write(f"MRAE: {mrae:.5f}\n")
+    log_file.write(f"RMSE: {rmse:.5f}\n")
+    log_file.write(f"SAM:  {sam:.5f}\n")
 
 # Notificación Telegram
 async def notify():
