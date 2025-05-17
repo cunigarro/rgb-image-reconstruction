@@ -30,7 +30,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 # Timestamp para archivos
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = f"training_log_hscnn_{timestamp}.txt"
-model_path = f"hscnn_model_{timestamp}.pt"
 
 # Entrenamiento
 with open(log_path, "w") as log_file:
