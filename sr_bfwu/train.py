@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from torch.cuda.amp import autocast, GradScaler
 
 from utils.dataset import SequoiaDatasetNIR_S3
@@ -18,7 +19,7 @@ rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
 img_size = (256, 256)
 
-# Dataset y Dataloader (batch 1 para ahorrar memoria)
+# Dataset y Dataloader
 dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=img_size)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
@@ -31,12 +32,15 @@ criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scaler = GradScaler()
 
-# Logging
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+# Hora local de Colombia
+colombia_zone = ZoneInfo("America/Bogota")
+colombia_now = datetime.now(colombia_zone)
+timestamp = colombia_now.strftime("%Y%m%d_%H%M%S")
 log_path = f"training_log_srbfwu_{timestamp}.txt"
 
+# Entrenamiento
 with open(log_path, "w") as log_file:
-    start_time = datetime.now()
+    start_time = datetime.now(colombia_zone)
     log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
     for epoch in range(50):
@@ -62,11 +66,10 @@ with open(log_path, "w") as log_file:
 
         torch.cuda.empty_cache()
 
-    end_time = datetime.now()
+    end_time = datetime.now(colombia_zone)
     log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
     log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
-    # Evaluación final de métricas
     with torch.no_grad():
         mrae, rmse, sam = compute_metrics(model, dataloader, device)
         log_file.write("Métricas finales:\n")
@@ -77,6 +80,9 @@ with open(log_path, "w") as log_file:
 # Notificación Telegram
 async def notify():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text="✅ Entrenamiento SRBFWU finalizado.")
+    await bot.send_message(
+        chat_id=TELEGRAM_CHAT_ID,
+        text=f"✅ Entrenamiento SRBFWU finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
+    )
 
 asyncio.run(notify())

@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from torch.cuda.amp import autocast, GradScaler
 
 from c_gan.train.dataset import RGBNIRDatasetS3
@@ -16,7 +17,10 @@ from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 async def notify():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text="✅ Entrenamiento cGAN finalizado.")
+    await bot.send_message(
+        chat_id=TELEGRAM_CHAT_ID,
+        text=f"✅ Entrenamiento SRAWAN finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
+    )
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,7 +32,10 @@ def main():
     bucket_name = 'dataset-rgb-nir-01'
     rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
     nir_keys = list_s3_files(bucket_name, 'nir_images/')
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Obtener hora de Colombia
+    colombia_time = datetime.now(ZoneInfo("America/Bogota"))
+    timestamp = colombia_time.strftime("%Y%m%d_%H%M%S")
     log_path = f"training_log_cgan_{timestamp}.txt"
 
     transform_rgb = transforms.Compose([
@@ -67,7 +74,7 @@ def main():
     g_losses, d_losses = [], []
 
     with open(log_path, "w") as log_file:
-        log_file.write(f"Inicio de entrenamiento: {datetime.now()}\n\n")
+        log_file.write(f"Inicio de entrenamiento: {colombia_time}\n\n")
 
         for epoch in range(n_epochs):
             for i, (imgs_rgb, imgs_nir) in enumerate(dataloader):
@@ -108,7 +115,7 @@ def main():
             scheduler_D.step()
             torch.cuda.empty_cache()
 
-        log_file.write(f"\nFin del entrenamiento: {datetime.now()}\n")
+        log_file.write(f"\nFin del entrenamiento: {datetime.now(ZoneInfo('America/Bogota'))}\n")
 
         # Calcular métricas finales con compute_metrics
         with torch.no_grad():

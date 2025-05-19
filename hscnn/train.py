@@ -9,6 +9,7 @@ from utils.metrics import compute_metrics
 from telegram import Bot
 from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from torch.cuda.amp import autocast, GradScaler
 
 # Configuración
@@ -17,7 +18,7 @@ rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
 # Dataset y Dataloader (batch 1 para minimizar memoria)
-dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))  # Puedes ajustar el tamaño aquí también
+dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
 # Dispositivo y modelo
@@ -29,12 +30,14 @@ criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scaler = GradScaler()
 
-# Logging
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+# Hora de Colombia
+colombia_zone = ZoneInfo("America/Bogota")
+colombia_now = datetime.now(colombia_zone)
+timestamp = colombia_now.strftime("%Y%m%d_%H%M%S")
 log_path = f"training_log_hscnn_{timestamp}.txt"
 
 with open(log_path, "w") as log_file:
-    start_time = datetime.now()
+    start_time = datetime.now(colombia_zone)
     log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
     for epoch in range(50):
@@ -57,10 +60,9 @@ with open(log_path, "w") as log_file:
         print(log_line)
         log_file.write(log_line + "\n")
 
-        # Opcional: liberar caché CUDA
         torch.cuda.empty_cache()
 
-    end_time = datetime.now()
+    end_time = datetime.now(colombia_zone)
     log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
     log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
@@ -75,6 +77,9 @@ with open(log_path, "w") as log_file:
 # Notificación Telegram
 async def notify():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text="✅ Entrenamiento HSCNN-D finalizado.")
+    await bot.send_message(
+        chat_id=TELEGRAM_CHAT_ID,
+        text=f"✅ Entrenamiento HSCNN-D finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
+    )
 
 asyncio.run(notify())
