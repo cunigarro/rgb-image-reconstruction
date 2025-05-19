@@ -17,7 +17,7 @@ nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
 # Dataset y Dataloader
 dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys)
-dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
 # Dispositivo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
