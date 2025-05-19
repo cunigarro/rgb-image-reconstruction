@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from utils.dataset import SequoiaDatasetNIR_S3
 from utils.list_s3_files import list_s3_files
 from utils.metrics import compute_metrics
@@ -29,12 +30,14 @@ criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scaler = GradScaler()
 
-# Logging
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+# Hora de Colombia
+colombia_zone = ZoneInfo("America/Bogota")
+colombia_now = datetime.now(colombia_zone)
+timestamp = colombia_now.strftime("%Y%m%d_%H%M%S")
 log_path = f"training_log_srawan_{timestamp}.txt"
 
 with open(log_path, "w") as log_file:
-    start_time = datetime.now()
+    start_time = datetime.now(colombia_zone)
     log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
     for epoch in range(50):
@@ -59,7 +62,7 @@ with open(log_path, "w") as log_file:
 
         torch.cuda.empty_cache()
 
-    end_time = datetime.now()
+    end_time = datetime.now(colombia_zone)
     log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
     log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
@@ -74,6 +77,9 @@ with open(log_path, "w") as log_file:
 # Notificación por Telegram
 async def notify():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text="✅ Entrenamiento SRAWAN finalizado.")
+    await bot.send_message(
+        chat_id=TELEGRAM_CHAT_ID,
+        text=f"✅ Entrenamiento SRAWAN finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
+    )
 
 asyncio.run(notify())
