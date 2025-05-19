@@ -3,13 +3,12 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
-import matplotlib.pyplot as plt
 from datetime import datetime
+from torch.cuda.amp import autocast, GradScaler
 
 from c_gan.train.dataset import RGBNIRDatasetS3
 from c_gan.train.discrimitator import NIRDiscriminator
 from c_gan.train.generator import RGBToNIRGenerator
-from utils.dataset import SequoiaDatasetNIR_S3
 from utils.list_s3_files import list_s3_files
 from utils.metrics import compute_metrics
 from telegram import Bot
@@ -25,7 +24,7 @@ def main():
     # Configuración
     lr = 0.0002
     n_epochs = 100
-    batch_size = 64
+    batch_size = 1  # reducido para ahorro de memoria
     bucket_name = 'dataset-rgb-nir-01'
     rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
     nir_keys = list_s3_files(bucket_name, 'nir_images/')
@@ -53,7 +52,6 @@ def main():
     )
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
-
     generator = RGBToNIRGenerator().to(device)
     discriminator = NIRDiscriminator().to(device)
 
@@ -64,6 +62,7 @@ def main():
 
     adversarial_loss = nn.BCELoss().to(device)
     consistency_loss = nn.L1Loss().to(device)
+    scaler = GradScaler()
 
     g_losses, d_losses = [], []
 
@@ -78,18 +77,24 @@ def main():
 
                 # Generador
                 optimizer_G.zero_grad()
-                gen_imgs = generator(imgs_rgb)
-                g_loss = adversarial_loss(discriminator(gen_imgs), valid) + consistency_loss(gen_imgs, imgs_nir)
-                g_loss.backward()
-                optimizer_G.step()
+                with autocast():
+                    gen_imgs = generator(imgs_rgb)
+                    g_loss_adv = adversarial_loss(discriminator(gen_imgs), valid)
+                    g_loss_consistency = consistency_loss(gen_imgs, imgs_nir)
+                    g_loss = g_loss_adv + g_loss_consistency
+                scaler.scale(g_loss).backward()
+                scaler.step(optimizer_G)
+                scaler.update()
 
                 # Discriminador
                 optimizer_D.zero_grad()
-                real_loss = adversarial_loss(discriminator(imgs_nir), valid)
-                fake_loss = adversarial_loss(discriminator(gen_imgs.detach()), fake)
-                d_loss = (real_loss + fake_loss) / 2
-                d_loss.backward()
-                optimizer_D.step()
+                with autocast():
+                    real_loss = adversarial_loss(discriminator(imgs_nir), valid)
+                    fake_loss = adversarial_loss(discriminator(gen_imgs.detach()), fake)
+                    d_loss = (real_loss + fake_loss) / 2
+                scaler.scale(d_loss).backward()
+                scaler.step(optimizer_D)
+                scaler.update()
 
                 g_losses.append(g_loss.item())
                 d_losses.append(d_loss.item())
@@ -101,15 +106,17 @@ def main():
 
             scheduler_G.step()
             scheduler_D.step()
+            torch.cuda.empty_cache()
 
         log_file.write(f"\nFin del entrenamiento: {datetime.now()}\n")
 
         # Calcular métricas finales con compute_metrics
-        mrae, rmse, sam = compute_metrics(generator, dataloader, device)
-        log_file.write("\nMétricas finales:\n")
-        log_file.write(f"MRAE: {mrae:.5f}\n")
-        log_file.write(f"RMSE: {rmse:.5f}\n")
-        log_file.write(f"SAM:  {sam:.5f}\n")
+        with torch.no_grad():
+            mrae, rmse, sam = compute_metrics(generator, dataloader, device)
+            log_file.write("\nMétricas finales:\n")
+            log_file.write(f"MRAE: {mrae:.5f}\n")
+            log_file.write(f"RMSE: {rmse:.5f}\n")
+            log_file.write(f"SAM:  {sam:.5f}\n")
 
     torch.save(generator.state_dict(), f'generator_{timestamp}.pth')
     torch.save(discriminator.state_dict(), f'discriminator_{timestamp}.pth')
