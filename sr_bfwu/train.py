@@ -27,7 +27,7 @@ dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Modelo y entrenamiento
-model = SRBFWU_Net(in_channels=3, num_bases=8, num_bands=1).to(device)
+model = SRBFWU_Net(in_channels=3, out_channels=1, n_basis=8, base_filters=64).to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scaler = GradScaler()
