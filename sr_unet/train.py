@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from datetime import datetime
-from zoneinfo import ZoneInfo  # <- Para zona horaria Colombia
+from zoneinfo import ZoneInfo
 from torch.cuda.amp import autocast, GradScaler
 
 from utils.dataset import SequoiaDatasetNIR_S3
@@ -37,7 +37,6 @@ colombia_now = datetime.now(colombia_zone)
 timestamp = colombia_now.strftime("%Y%m%d_%H%M%S")
 log_path = f"training_log_srunet_{timestamp}.txt"
 
-# Entrenamiento y logging
 with open(log_path, "w") as log_file:
     start_time = datetime.now(colombia_zone)
     log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
@@ -51,7 +50,6 @@ with open(log_path, "w") as log_file:
             with autocast():
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
-
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -69,7 +67,6 @@ with open(log_path, "w") as log_file:
     log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
     log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
-    # Métricas
     with torch.no_grad():
         mrae, rmse, sam = compute_metrics(model, dataloader, device)
         log_file.write("Métricas finales:\n")
@@ -77,17 +74,12 @@ with open(log_path, "w") as log_file:
         log_file.write(f"RMSE: {rmse:.5f}\n")
         log_file.write(f"SAM:  {sam:.5f}\n")
 
-# Notificación por Telegram con métricas
+# Notificación por Telegram
 async def notify():
-    now_col = datetime.now(ZoneInfo("America/Bogota")).strftime("%Y-%m-%d %H:%M:%S")
-    msg = (
-        f"✅ Entrenamiento SRUNET finalizado el {now_col} (hora Colombia).\n"
-        f"Métricas finales:\n"
-        f"• MRAE: {mrae:.5f}\n"
-        f"• RMSE: {rmse:.5f}\n"
-        f"• SAM:  {sam:.5f}"
-    )
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+    await bot.send_message(
+        chat_id=TELEGRAM_CHAT_ID,
+        text=f"✅ Entrenamiento SRUNET finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
+    )
 
 asyncio.run(notify())
