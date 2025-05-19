@@ -1,0 +1,60 @@
+Entrenamiento iniciado: 2025-05-19 11:59:10.327588-05:00
+
+Epoch 1, Loss: 0.02625
+Epoch 2, Loss: 0.01321
+Epoch 3, Loss: 0.01161
+Epoch 4, Loss: 0.01161
+Epoch 5, Loss: 0.01067
+Epoch 6, Loss: 0.01021
+Epoch 7, Loss: 0.01012
+Epoch 8, Loss: 0.00962
+Epoch 9, Loss: 0.00949
+Epoch 10, Loss: 0.00894
+Epoch 11, Loss: 0.00873
+Epoch 12, Loss: 0.00875
+Epoch 13, Loss: 0.00862
+Epoch 14, Loss: 0.00840
+Epoch 15, Loss: 0.00803
+Epoch 16, Loss: 0.00821
+Epoch 17, Loss: 0.00774
+Epoch 18, Loss: 0.00781
+Epoch 19, Loss: 0.00758
+Epoch 20, Loss: 0.00707
+Epoch 21, Loss: 0.00708
+Epoch 22, Loss: 0.00700
+Epoch 23, Loss: 0.00709
+Epoch 24, Loss: 0.00678
+Epoch 25, Loss: 0.00669
+Epoch 26, Loss: 0.00656
+Epoch 27, Loss: 0.00648
+Epoch 28, Loss: 0.00615
+Epoch 29, Loss: 0.00646
+Epoch 30, Loss: 0.00608
+Epoch 31, Loss: 0.00611
+Epoch 32, Loss: 0.00603
+Epoch 33, Loss: 0.00576
+Epoch 34, Loss: 0.00565
+Epoch 35, Loss: 0.00565
+Epoch 36, Loss: 0.00545
+Epoch 37, Loss: 0.00567
+Epoch 38, Loss: 0.00550
+Epoch 39, Loss: 0.00514
+Epoch 40, Loss: 0.00509
+Epoch 41, Loss: 0.00500
+Epoch 42, Loss: 0.00488
+Epoch 43, Loss: 0.00481
+Epoch 44, Loss: 0.00473
+Epoch 45, Loss: 0.00465
+Epoch 46, Loss: 0.00475
+Epoch 47, Loss: 0.00462
+Epoch 48, Loss: 0.00437
+Epoch 49, Loss: 0.00428
+Epoch 50, Loss: 0.00430
+
+Entrenamiento finalizado: 2025-05-19 12:24:14.560789-05:00
+Duración total: 0:25:04.233201
+
+Métricas finales:
+MRAE: 0.09904
+RMSE: 0.05156
+SAM:  6.69360
