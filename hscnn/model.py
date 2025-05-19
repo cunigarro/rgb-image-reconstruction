@@ -40,7 +40,7 @@ class DenseBlock(nn.Module):
         return out
 
 class HSCNN_D_NIR(nn.Module):
-    def __init__(self, num_blocks=38, num_out_channels=31):
+    def __init__(self, num_blocks=38, num_out_channels=1):
         super(HSCNN_D_NIR, self).__init__()
         # Initial parallel conv layers (3x3 and 1x1, each with 16 filters)
         self.init_conv3x3 = nn.Conv2d(3, 16, kernel_size=3, padding=1)

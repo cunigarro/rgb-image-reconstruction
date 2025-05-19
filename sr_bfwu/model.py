@@ -2,66 +2,75 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, 3, padding=1),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        return self.block(x)
-
 class SRBFWU_Net(nn.Module):
-    def __init__(self, in_channels=3, num_bases=8, num_bands=1, features=[64, 128, 256, 512]):
-        super().__init__()
-        self.num_bases = num_bases
-        self.num_bands = num_bands
-
-        # Encoder
-        self.encoder = nn.ModuleList()
-        for feat in features:
-            self.encoder.append(ConvBlock(in_channels, feat))
-            in_channels = feat
-
-        # Bottleneck
-        self.bottleneck = ConvBlock(features[-1], features[-1] * 2)
-
-        # Decoder
-        self.decoder = nn.ModuleList()
-        for feat in reversed(features):
-            self.decoder.append(nn.ConvTranspose2d(feat * 2, feat, kernel_size=2, stride=2))
-            self.decoder.append(ConvBlock(feat * 2, feat))
-
-        # Final layer to predict per-pixel weights
-        self.weight_map = nn.Conv2d(features[0], num_bases, kernel_size=1)
-
-        # Learnable basis functions
-        self.spectral_bases = nn.Parameter(torch.randn(num_bases, num_bands))
+    def __init__(self, in_channels=3, out_channels=1, n_basis=10, base_filters=64):
+        super(SRBFWU_Net, self).__init__()
+        # Bloques de convolución (dos conv 3x3 + ReLU) para el encoder
+        def conv_block(in_ch, out_ch):
+            return nn.Sequential(
+                nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+                nn.ReLU(inplace=True)
+            )
+        # Encoder: cinco niveles (entrada + 4 downsamplings)
+        self.enc1 = conv_block(in_channels, base_filters)        # Nivel 1
+        self.enc2 = conv_block(base_filters, base_filters*2)     # Nivel 2 (1/2 resolución)
+        self.enc3 = conv_block(base_filters*2, base_filters*4)   # Nivel 3 (1/4 resolución)
+        self.enc4 = conv_block(base_filters*4, base_filters*8)   # Nivel 4 (1/8 resolución)
+        self.enc5 = conv_block(base_filters*8, base_filters*16)  # Nivel 5 (1/16 res., capa más profunda)
+        # Bloques de convolución para el decoder (con skip connections)
+        def conv_block_up(in_ch, out_ch):
+            return nn.Sequential(
+                nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+                nn.ReLU(inplace=True)
+            )
+        self.dec4 = conv_block_up(base_filters*16 + base_filters*8, base_filters*8)   # Fusiona nivel 5 con skip de nivel 4
+        self.dec3 = conv_block_up(base_filters*8  + base_filters*4, base_filters*4)   # Fusiona resultado nivel 4 con skip nivel 3
+        self.dec2 = conv_block_up(base_filters*4  + base_filters*2, base_filters*2)   # Fusiona resultado nivel 3 con skip nivel 2
+        self.dec1 = conv_block_up(base_filters*2  + base_filters,   base_filters)     # Fusiona resultado nivel 2 con skip nivel 1
+        # Capa final de la U-Net: predice n mapas de pesos (n_basis)
+        self.final_conv = nn.Conv2d(base_filters, n_basis, kernel_size=1)
+        # Parámetro aprendible de funciones base espectrales: matriz n_basis x out_channels
+        # (Para salida NIR, out_channels=1, así que basis tendrá shape [10 x 1])
+        self.basis = nn.Parameter(torch.randn(n_basis, out_channels))
 
     def forward(self, x):
-        skips = []
-        for down in self.encoder:
-            x = down(x)
-            skips.append(x)
-            x = F.max_pool2d(x, 2)
-
-        x = self.bottleneck(x)
-        skips = skips[::-1]
-
-        for i in range(0, len(self.decoder), 2):
-            x = self.decoder[i](x)
-            skip = skips[i // 2]
-            if x.shape != skip.shape:
-                x = F.interpolate(x, size=skip.shape[2:])
-            x = torch.cat((skip, x), dim=1)
-            x = self.decoder[i + 1](x)
-
-        weights = self.weight_map(x)  # [B, num_bases, H, W]
-        weights = weights.permute(0, 2, 3, 1)  # [B, H, W, num_bases]
-        output = torch.matmul(weights, self.spectral_bases)  # [B, H, W, num_bands]
-        output = output.permute(0, 3, 1, 2)  # [B, num_bands, H, W]
-        return output
+        # --- Encoder (contracción) ---
+        e1 = self.enc1(x)
+        # Downsampling lineal (bilinear) en lugar de MaxPool
+        d1 = F.interpolate(e1, scale_factor=0.5, mode='bilinear', align_corners=False)
+        e2 = self.enc2(d1)
+        d2 = F.interpolate(e2, scale_factor=0.5, mode='bilinear', align_corners=False)
+        e3 = self.enc3(d2)
+        d3 = F.interpolate(e3, scale_factor=0.5, mode='bilinear', align_corners=False)
+        e4 = self.enc4(d3)
+        d4 = F.interpolate(e4, scale_factor=0.5, mode='bilinear', align_corners=False)
+        e5 = self.enc5(d4)
+        # --- Decoder (expansión) con skip connections ---
+        # Upsample lineal y concatenación con feature map del encoder correspondiente (skip)
+        u4 = F.interpolate(e5, size=e4.shape[2:], mode='bilinear', align_corners=False)
+        u4 = torch.cat([u4, e4], dim=1)        # concat sin recortar
+        u4 = self.dec4(u4)
+        u3 = F.interpolate(u4, size=e3.shape[2:], mode='bilinear', align_corners=False)
+        u3 = torch.cat([u3, e3], dim=1)
+        u3 = self.dec3(u3)
+        u2 = F.interpolate(u3, size=e2.shape[2:], mode='bilinear', align_corners=False)
+        u2 = torch.cat([u2, e2], dim=1)
+        u2 = self.dec2(u2)
+        u1 = F.interpolate(u2, size=e1.shape[2:], mode='bilinear', align_corners=False)
+        u1 = torch.cat([u1, e1], dim=1)
+        u1 = self.dec1(u1)
+        # Mapa de pesos predicho (10 canales de peso por píxel)
+        weight_map = self.final_conv(u1)  # shape: [B, n_basis, H, W]
+        # --- Reconstrucción espectral usando funciones base ---
+        # Reorganizar weight_map a [B, H*W, n_basis] para multiplicar por la matriz de bases
+        B, n_basis, H, W = weight_map.shape
+        weight_map_flat = weight_map.permute(0, 2, 3, 1).reshape(B, H*W, n_basis)
+        # Combinar pesos con las funciones base aprendidas (matmul): resultado [B, H*W, out_channels]
+        spectral_flat = weight_map_flat @ self.basis  # self.basis es [n_basis, out_channels]
+        # Volver a forma de imagen [B, out_channels, H, W]
+        spectral_out = spectral_flat.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        return spectral_out
