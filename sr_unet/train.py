@@ -9,25 +9,27 @@ from telegram import Bot
 from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from sr_unet.model import SRUNet
 from datetime import datetime
+from torch.cuda.amp import autocast, GradScaler
 
 # Configuración
 bucket_name = 'dataset-rgb-nir-01'
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
-# Dataset y Dataloader
-dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys)
-dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
+# Dataset y Dataloader (ajustar tamaño si necesitas reducir uso de memoria)
+dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
+dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-# Dispositivo
+# Dispositivo y modelo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# Modelo y entrenamiento
 model = SRUNet(in_channels=3, out_channels=1).to(device)
+
+# Loss, optimizer, scaler
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+scaler = GradScaler()
 
-# Timestamp para archivos
+# Logging
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = f"training_log_srunet_{timestamp}.txt"
 
@@ -41,10 +43,12 @@ with open(log_path, "w") as log_file:
             inputs, targets = inputs.to(device), targets.to(device)
 
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
-            loss.backward()
-            optimizer.step()
+            with autocast():
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             running_loss += loss.item()
 
@@ -53,22 +57,22 @@ with open(log_path, "w") as log_file:
         print(log_line)
         log_file.write(log_line + "\n")
 
+        torch.cuda.empty_cache()
+
     end_time = datetime.now()
     log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
     log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
-    # Métricas
-    mrae, rmse, sam = compute_metrics(model, dataloader, device)
-    log_file.write("Métricas finales:\n")
-    log_file.write(f"MRAE: {mrae:.5f}\n")
-    log_file.write(f"RMSE: {rmse:.5f}\n")
-    log_file.write(f"SAM:  {sam:.5f}\n")
+    with torch.no_grad():
+        mrae, rmse, sam = compute_metrics(model, dataloader, device)
+        log_file.write("Métricas finales:\n")
+        log_file.write(f"MRAE: {mrae:.5f}\n")
+        log_file.write(f"RMSE: {rmse:.5f}\n")
+        log_file.write(f"SAM:  {sam:.5f}\n")
 
-# Notificación Telegram
+# Notificación por Telegram
 async def notify():
-    bot_token = TELEGRAM_BOT_TOKEN
-    chat_id = TELEGRAM_CHAT_ID
-    bot = Bot(token=bot_token)
-    await bot.send_message(chat_id=chat_id, text="✅ Entrenamiento SRUNET finalizado.")
+    bot = Bot(token=TELEGRAM_BOT_TOKEN)
+    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text="✅ Entrenamiento SRUNET finalizado.")
 
 asyncio.run(notify())
