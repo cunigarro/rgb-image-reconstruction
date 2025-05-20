@@ -27,7 +27,7 @@ def main():
 
     # Configuración
     lr = 0.0002
-    n_epochs = 100
+    n_epochs = 50
     batch_size = 1  # reducido para ahorro de memoria
     bucket_name = 'dataset-rgb-nir-01'
     rgb_keys = list_s3_files(bucket_name, 'rgb_images/')

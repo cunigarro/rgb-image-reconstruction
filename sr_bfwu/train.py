@@ -22,6 +22,7 @@ img_size = (256, 256)
 # Dataset y Dataloader
 dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=img_size)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+print(f"Total imágenes en dataset: {len(dataset)}")
 
 # Dispositivo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -45,7 +46,10 @@ with open(log_path, "w") as log_file:
 
     for epoch in range(50):
         running_loss = 0.0
-        for inputs, targets in dataloader:
+        for batch_idx, (inputs, targets) in enumerate(dataloader, start=1):
+            if batch_idx > 300:
+                break
+
             inputs, targets = inputs.to(device), targets.to(device)
 
             optimizer.zero_grad()
@@ -59,11 +63,12 @@ with open(log_path, "w") as log_file:
 
             running_loss += loss.item()
 
-        avg_loss = running_loss / len(dataloader)
-        log_line = f"Epoch {epoch+1}, Loss: {avg_loss:.5f}"
-        print(log_line)
-        log_file.write(log_line + "\n")
+            log_line = f"[Epoch {epoch+1}/50] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
+            print(log_line)
+            log_file.write(log_line + "\n")
 
+        avg_loss = running_loss / min(300, len(dataloader))
+        log_file.write(f"=> Epoch {epoch+1} promedio: {avg_loss:.5f}\n\n")
         torch.cuda.empty_cache()
 
     end_time = datetime.now(colombia_zone)

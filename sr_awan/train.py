@@ -4,22 +4,24 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from torch.cuda.amp import autocast, GradScaler
+
 from utils.dataset import SequoiaDatasetNIR_S3
 from utils.list_s3_files import list_s3_files
 from utils.metrics import compute_metrics
 from telegram import Bot
 from config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from sr_awan.model import SRAWAN
-from torch.cuda.amp import autocast, GradScaler
 
 # Configuración
 bucket_name = 'dataset-rgb-nir-01'
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
-# Dataset y Dataloader optimizados
+# Dataset y Dataloader
 dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+print(f"Total imágenes en dataset: {len(dataset)}")
 
 # Dispositivo y modelo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,7 +44,10 @@ with open(log_path, "w") as log_file:
 
     for epoch in range(50):
         running_loss = 0.0
-        for inputs, targets in dataloader:
+        for batch_idx, (inputs, targets) in enumerate(dataloader, start=1):
+            if batch_idx > 300:
+                break  # Solo 300 imágenes por época
+
             inputs, targets = inputs.to(device), targets.to(device)
 
             optimizer.zero_grad()
@@ -55,11 +60,12 @@ with open(log_path, "w") as log_file:
 
             running_loss += loss.item()
 
-        avg_loss = running_loss / len(dataloader)
-        log_line = f"Epoch {epoch+1}, Loss: {avg_loss:.5f}"
-        print(log_line)
-        log_file.write(log_line + "\n")
+            log_line = f"[Epoch {epoch+1}/50] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
+            print(log_line)
+            log_file.write(log_line + "\n")
 
+        avg_loss = running_loss / min(300, len(dataloader))
+        log_file.write(f"=> Epoch {epoch+1} promedio: {avg_loss:.5f}\n\n")
         torch.cuda.empty_cache()
 
     end_time = datetime.now(colombia_zone)

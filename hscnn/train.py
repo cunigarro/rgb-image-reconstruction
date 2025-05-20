@@ -17,9 +17,10 @@ bucket_name = 'dataset-rgb-nir-01'
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
-# Dataset y Dataloader (batch 1 para minimizar memoria)
+# Dataset y Dataloader
 dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+print(f"Total imágenes en dataset: {len(dataset)}")
 
 # Dispositivo y modelo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,7 +43,10 @@ with open(log_path, "w") as log_file:
 
     for epoch in range(50):
         running_loss = 0.0
-        for inputs, targets in dataloader:
+        for batch_idx, (inputs, targets) in enumerate(dataloader, start=1):
+            if batch_idx > 300:  # Límite por época
+                break
+
             inputs, targets = inputs.to(device), targets.to(device)
 
             optimizer.zero_grad()
@@ -54,12 +58,12 @@ with open(log_path, "w") as log_file:
             scaler.update()
 
             running_loss += loss.item()
+            log_line = f"[Epoch {epoch+1}/50] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
+            print(log_line)
+            log_file.write(log_line + "\n")
 
-        avg_loss = running_loss / len(dataloader)
-        log_line = f"Epoch {epoch+1}, Loss: {avg_loss:.5f}"
-        print(log_line)
-        log_file.write(log_line + "\n")
-
+        avg_loss = running_loss / min(300, len(dataloader))
+        log_file.write(f"=> Epoch {epoch+1} promedio: {avg_loss:.5f}\n\n")
         torch.cuda.empty_cache()
 
     end_time = datetime.now(colombia_zone)
@@ -74,7 +78,7 @@ with open(log_path, "w") as log_file:
         log_file.write(f"RMSE: {rmse:.5f}\n")
         log_file.write(f"SAM:  {sam:.5f}\n")
 
-    # Guardar el modelo entrenado
+    # Guardar modelo
     torch.save(model.state_dict(), f"hscnn_d_inference_{timestamp}.pth")
 
 # Notificación Telegram
