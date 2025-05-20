@@ -74,6 +74,9 @@ with open(log_path, "w") as log_file:
         log_file.write(f"RMSE: {rmse:.5f}\n")
         log_file.write(f"SAM:  {sam:.5f}\n")
 
+    # Guardar el modelo entrenado
+    torch.save(model.state_dict(), f"hscnn_d_inference_{timestamp}.pth")
+
 # Notificación Telegram
 async def notify():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
