@@ -68,7 +68,7 @@ def main():
     scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, step_size=30, gamma=0.5)
     scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=30, gamma=0.5)
 
-    adversarial_loss = nn.BCELoss().to(device)
+    adversarial_loss = nn.BCEWithLogitsLoss().to(device)
     consistency_loss = nn.L1Loss().to(device)
     scaler = GradScaler()
 
