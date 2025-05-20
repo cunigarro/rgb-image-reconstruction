@@ -34,8 +34,9 @@ def main():
     nir_keys = list_s3_files(bucket_name, 'nir_images/')
 
     # Obtener hora de Colombia
-    colombia_time = datetime.now(ZoneInfo("America/Bogota"))
-    timestamp = colombia_time.strftime("%Y%m%d_%H%M%S")
+    colombia_tz = ZoneInfo("America/Bogota")
+    now = datetime.now(colombia_tz)
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
     log_path = f"training_log_cgan_{timestamp}.txt"
 
     transform_rgb = transforms.Compose([
@@ -74,8 +75,8 @@ def main():
     g_losses, d_losses = [], []
 
     with open(log_path, "w") as log_file:
-        log_file.write(f"Inicio de entrenamiento: {colombia_time}\n\n")
-        start_time = datetime.now(colombia_time)
+        log_file.write(f"Inicio de entrenamiento: {now}\n\n")
+        start_time = datetime.now(colombia_tz)
 
         for epoch in range(n_epochs):
             for i, (imgs_rgb, imgs_nir) in enumerate(dataloader):
@@ -116,7 +117,7 @@ def main():
             scheduler_D.step()
             torch.cuda.empty_cache()
 
-        end_time = datetime.now(colombia_time)
+        end_time = datetime.now(colombia_tz)
         log_file.write(f"\nFin del entrenamiento: {end_time}\n")
         log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
