@@ -19,7 +19,7 @@ async def notify():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     await bot.send_message(
         chat_id=TELEGRAM_CHAT_ID,
-        text=f"✅ Entrenamiento SRAWAN finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
+        text=f"✅ Entrenamiento CGAN finalizado a las {datetime.now(ZoneInfo('America/Bogota')).strftime('%H:%M:%S')} (hora Colombia)."
     )
 
 def main():
