@@ -12,7 +12,6 @@ model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu'))
 model.eval()
 
 transform = transforms.Compose([
-    transforms.Resize((256, 256)),
     transforms.ToTensor(),
     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 ])
