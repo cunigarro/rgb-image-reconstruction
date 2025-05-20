@@ -75,6 +75,7 @@ def main():
 
     with open(log_path, "w") as log_file:
         log_file.write(f"Inicio de entrenamiento: {colombia_time}\n\n")
+        start_time = datetime.now(colombia_time)
 
         for epoch in range(n_epochs):
             for i, (imgs_rgb, imgs_nir) in enumerate(dataloader):
@@ -115,7 +116,9 @@ def main():
             scheduler_D.step()
             torch.cuda.empty_cache()
 
-        log_file.write(f"\nFin del entrenamiento: {datetime.now(ZoneInfo('America/Bogota'))}\n")
+        end_time = datetime.now(colombia_time)
+        log_file.write(f"\nFin del entrenamiento: {end_time}\n")
+        log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
         # Calcular métricas finales con compute_metrics
         with torch.no_grad():
