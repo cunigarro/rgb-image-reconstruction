@@ -14,7 +14,8 @@ image_path = './rgb_image.jpg'
 
 # Cargar modelo
 model = RGBToNIRGenerator()
-model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.load_state_dict(torch.load(weights_path, map_location=device))
 model.eval()
 
 # Transformación (sin resize ni normalización)
