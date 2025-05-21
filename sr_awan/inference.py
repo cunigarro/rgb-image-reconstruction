@@ -13,7 +13,8 @@ image_path = './rgb_image.jpg'
 
 # Cargar modelo
 model = SRAWAN(use_css=False)
-model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.load_state_dict(torch.load(weights_path, map_location=device))
 model.eval()
 
 # Transformación (sin resize ni normalización)
@@ -34,10 +35,10 @@ nir_generated_tensor = nir_generated_tensor.squeeze(0) * 0.5 + 0.5
 nir_array = nir_generated_tensor.squeeze().cpu().numpy()
 
 # Mostrar en plot
-plt.imshow(nir_array, cmap='gray')
-plt.title("Generated NIR")
-plt.axis('off')
-plt.show()
+# plt.imshow(nir_array, cmap='gray')
+# plt.title("Generated NIR")
+# plt.axis('off')
+# plt.show()
 
 # Guardar como imagen visible (jpg) usando imsave
 plt.imsave('generated_nir_image.jpg', nir_array, cmap='gray')
