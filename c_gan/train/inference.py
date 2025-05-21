@@ -4,6 +4,7 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 import numpy as np
 import imageio.v3 as iio
+import time
 
 from c_gan.train.generator import RGBToNIRGenerator
 
@@ -28,8 +29,16 @@ image_rgb = Image.open(image_path).convert('RGB')
 image_rgb_tensor = transform(image_rgb).unsqueeze(0)
 
 # Inferencia
+# Medir tiempo de inferencia
+start_time = time.time()
+
 with torch.no_grad():
     nir_generated_tensor = model(image_rgb_tensor)
+
+end_time = time.time()
+inference_time = end_time - start_time
+
+print(f"Inference time: {inference_time:.4f} seconds")
 
 # Convertir de [-1, 1] a [0, 1]
 nir_generated_tensor = nir_generated_tensor.squeeze(0) * 0.5 + 0.5

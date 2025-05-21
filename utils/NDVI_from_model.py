@@ -20,11 +20,11 @@ def calculate_ndvi(rgb_path, nir_path):
     colored_ndvi = cv2.applyColorMap((ndvi_normalized * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
     cv2.imshow('NDVI Image', colored_ndvi)
-    cv2.imwrite('ndvi_image_from_model.png', colored_ndvi)
+    cv2.imwrite('ndvi_image_from_model.jpg', colored_ndvi)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 rgb_image_path = './rgb_image.jpg'
-nir_image_path = './generated_nir_image.png'
+nir_image_path = './generated_nir_image.jpg'
 
 calculate_ndvi(rgb_image_path, nir_image_path)
