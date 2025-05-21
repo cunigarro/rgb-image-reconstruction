@@ -19,7 +19,7 @@ model.eval()
 
 # Transformación (sin resize ni normalización)
 transform = transforms.Compose([
-    transforms.Resize((500, 500)),
+    transforms.Resize((400, 400)),
     transforms.ToTensor(),
 ])
 
