@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import imageio.v3 as iio
 
-from sr_awan.model import SRAWAN
+from sr_bfwu.model import SRBFWU_Net
 
 # Rutas
-weights_path = './srawan_d_inference_20250520_155825.pth'
+weights_path = './srbfwu_d_inference_20250520_185038.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo
-model = SRAWAN(use_css=False)
+model = SRBFWU_Net(in_channels=3, out_channels=1, n_basis=8)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.load_state_dict(torch.load(weights_path, map_location=device))
 model.eval()
