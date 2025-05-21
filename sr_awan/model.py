@@ -177,6 +177,7 @@ class SRAWAN(nn.Module):
         super(SRAWAN, self).__init__()
         self.use_css = use_css
         # Si se usa CSS, se espera concatenar 3 mapas constantes (uno por canal RGB) al input
+        self.use_spatial_att = use_spatial_att
         effective_in = in_channels + (3 if use_css else 0)
         # Extracción de características superficiales (shallow features)
         self.input_conv = ConvLayer(effective_in, mid_channels, kernel_size=3)
