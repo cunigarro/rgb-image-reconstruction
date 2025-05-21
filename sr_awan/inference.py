@@ -18,7 +18,10 @@ model.load_state_dict(torch.load(weights_path, map_location=device))
 model.eval()
 
 # Transformación (sin resize ni normalización)
-transform = transforms.ToTensor()
+transform = transforms.Compose([
+    transforms.Resize((256, 256)),
+    transforms.ToTensor(),
+])
 
 # Cargar imagen RGB
 image_rgb = Image.open(image_path).convert('RGB')
