@@ -19,7 +19,6 @@ model.eval()
 
 # Transformación (sin resize ni normalización)
 transform = transforms.Compose([
-    transforms.Resize((256, 256)),
     transforms.ToTensor(),
 ])
 
@@ -38,10 +37,10 @@ nir_generated_tensor = nir_generated_tensor.squeeze(0) * 0.5 + 0.5
 nir_array = nir_generated_tensor.squeeze().cpu().numpy()
 
 # Mostrar en plot
-# plt.imshow(nir_array, cmap='gray')
-# plt.title("Generated NIR")
-# plt.axis('off')
-# plt.show()
+plt.imshow(nir_array, cmap='gray')
+plt.title("Generated NIR")
+plt.axis('off')
+plt.show()
 
 # Guardar como imagen visible (jpg) usando imsave
 plt.imsave('generated_nir_image.jpg', nir_array, cmap='gray')
