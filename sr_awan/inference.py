@@ -12,7 +12,7 @@ weights_path = './srawan_d_inference_20250520_155825.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo
-model = SRAWAN(use_css=False)
+model = SRAWAN(use_css=False, use_spatial_att=False)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.load_state_dict(torch.load(weights_path, map_location=device))
 model.eval()

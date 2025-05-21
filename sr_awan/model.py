@@ -173,7 +173,7 @@ class SRAWAN(nn.Module):
     para reconstruir una banda espectral NIR.
     Incluye atención de canal (AWCA) y atención espacial (PSNL) con fusión residual jerárquica entre bloques.
     """
-    def __init__(self, in_channels=3, out_channels=1, mid_channels=200, num_blocks=8, use_css=True):
+    def __init__(self, in_channels=3, out_channels=1, mid_channels=200, num_blocks=8, use_css=True, use_spatial_att=True):
         super(SRAWAN, self).__init__()
         self.use_css = use_css
         # Si se usa CSS, se espera concatenar 3 mapas constantes (uno por canal RGB) al input
@@ -221,5 +221,6 @@ class SRAWAN(nn.Module):
         # Proyección a la banda NIR de salida
         out = self.output_conv(out)
         # Atención espacial sobre la salida (PSNL)
-        out = self.spatial_att(out)
+        if self.use_spatial_att:
+            out = self.spatial_att(out)
         return out
