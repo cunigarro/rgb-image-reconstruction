@@ -32,7 +32,7 @@ val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 # Dataset de prueba (60 imágenes)
 test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
 test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
-test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys, img_size=(256, 256))
+test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # Dispositivo y modelo
