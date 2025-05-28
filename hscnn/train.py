@@ -18,7 +18,7 @@ bucket_name = 'dataset-rgb-nir-01'
 # Dataset completo (300 imágenes)
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
-full_dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
+full_dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys)
 print(f"Total imágenes en dataset: {len(full_dataset)}")
 
 # Dividir en train (80%) y val (20%)
