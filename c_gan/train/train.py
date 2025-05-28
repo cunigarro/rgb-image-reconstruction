@@ -1,7 +1,7 @@
 import asyncio
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -28,37 +28,56 @@ def main():
     # Configuración
     lr = 0.0002
     n_epochs = 50
-    batch_size = 1  # reducido para ahorro de memoria
+    batch_size = 1
     bucket_name = 'dataset-rgb-nir-01'
     rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
     nir_keys = list_s3_files(bucket_name, 'nir_images/')
+    img_size = (256, 256)
 
-    # Obtener hora de Colombia
+    # Hora
     colombia_tz = ZoneInfo("America/Bogota")
-    now = datetime.now(colombia_tz)
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(colombia_tz).strftime("%Y%m%d_%H%M%S")
     log_path = f"training_log_cgan_{timestamp}.txt"
 
+    # Transforms
     transform_rgb = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
-
     transform_nir = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5])
     ])
 
-    dataset = RGBNIRDatasetS3(
+    # Dataset completo
+    full_dataset = RGBNIRDatasetS3(
         bucket_name=bucket_name,
         rgb_keys=rgb_keys,
         nir_keys=nir_keys,
         transform_rgb=transform_rgb,
         transform_nir=transform_nir
     )
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+
+    train_size = int(0.8 * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+    train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+
+    # Test loader
+    test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
+    test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
+    test_dataset = RGBNIRDatasetS3(
+        bucket_name=bucket_name,
+        rgb_keys=test_rgb_keys,
+        nir_keys=test_nir_keys,
+        transform_rgb=transform_rgb,
+        transform_nir=transform_nir
+    )
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
     generator = RGBToNIRGenerator().to(device)
     discriminator = NIRDiscriminator().to(device)
@@ -72,19 +91,21 @@ def main():
     consistency_loss = nn.L1Loss().to(device)
     scaler = GradScaler()
 
-    g_losses, d_losses = [], []
-
     with open(log_path, "w") as log_file:
-        log_file.write(f"Inicio de entrenamiento: {now}\n\n")
         start_time = datetime.now(colombia_tz)
+        log_file.write(f"Inicio de entrenamiento: {start_time}\n\n")
 
         for epoch in range(n_epochs):
-            for i, (imgs_rgb, imgs_nir) in enumerate(dataloader):
-                imgs_rgb, imgs_nir = imgs_rgb.to(device), imgs_nir.to(device)
-                valid = torch.ones(imgs_rgb.size(0), 1, 30, 30, device=device)
-                fake = torch.zeros(imgs_rgb.size(0), 1, 30, 30, device=device)
+            generator.train()
+            discriminator.train()
+            g_loss_epoch, d_loss_epoch = 0.0, 0.0
 
-                # Generador
+            for i, (imgs_rgb, imgs_nir) in enumerate(train_loader):
+                imgs_rgb, imgs_nir = imgs_rgb.to(device), imgs_nir.to(device)
+                valid = torch.ones((imgs_rgb.size(0), 1, 30, 30), device=device)
+                fake = torch.zeros((imgs_rgb.size(0), 1, 30, 30), device=device)
+
+                # Entrenamiento del generador
                 optimizer_G.zero_grad()
                 with autocast():
                     gen_imgs = generator(imgs_rgb)
@@ -95,7 +116,7 @@ def main():
                 scaler.step(optimizer_G)
                 scaler.update()
 
-                # Discriminador
+                # Entrenamiento del discriminador
                 optimizer_D.zero_grad()
                 with autocast():
                     real_loss = adversarial_loss(discriminator(imgs_nir), valid)
@@ -105,26 +126,39 @@ def main():
                 scaler.step(optimizer_D)
                 scaler.update()
 
-                g_losses.append(g_loss.item())
-                d_losses.append(d_loss.item())
+                g_loss_epoch += g_loss.item()
+                d_loss_epoch += d_loss.item()
 
-                log_line = (f"[Epoch {epoch+1}/{n_epochs}] [Batch {i+1}/{len(dataloader)}] "
-                            f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}]")
-                print(log_line)
-                log_file.write(log_line + "\n")
+                print(f"[Epoch {epoch+1}/{n_epochs}] [Batch {i+1}/{len(train_loader)}] "
+                      f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}]")
 
             scheduler_G.step()
             scheduler_D.step()
+
+            # Validación
+            generator.eval()
+            val_loss_total = 0.0
+            with torch.no_grad():
+                for imgs_rgb, imgs_nir in val_loader:
+                    imgs_rgb, imgs_nir = imgs_rgb.to(device), imgs_nir.to(device)
+                    gen_imgs = generator(imgs_rgb)
+                    val_loss_total += consistency_loss(gen_imgs, imgs_nir).item()
+            avg_val_loss = val_loss_total / len(val_loader)
+
+            log_file.write(f"Epoch {epoch+1}: G_loss={g_loss_epoch:.5f}, D_loss={d_loss_epoch:.5f}, "
+                           f"Val_loss={avg_val_loss:.5f}\n")
             torch.cuda.empty_cache()
 
+        # Final
         end_time = datetime.now(colombia_tz)
         log_file.write(f"\nFin del entrenamiento: {end_time}\n")
         log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
-        # Calcular métricas finales con compute_metrics
+        # Métricas en test set
+        generator.eval()
         with torch.no_grad():
-            mrae, rmse, sam = compute_metrics(generator, dataloader, device)
-            log_file.write("\nMétricas finales:\n")
+            mrae, rmse, sam = compute_metrics(generator, test_loader, device)
+            log_file.write("\nMétricas en Test Set:\n")
             log_file.write(f"MRAE: {mrae:.5f}\n")
             log_file.write(f"RMSE: {rmse:.5f}\n")
             log_file.write(f"SAM:  {sam:.5f}\n")
