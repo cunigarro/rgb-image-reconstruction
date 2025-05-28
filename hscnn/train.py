@@ -1,7 +1,7 @@
 import asyncio
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from utils.dataset import SequoiaDatasetNIR_S3
 from hscnn.model import HSCNN_D_NIR
 from utils.list_s3_files import list_s3_files
@@ -14,13 +14,26 @@ from torch.cuda.amp import autocast, GradScaler
 
 # Configuración
 bucket_name = 'dataset-rgb-nir-01'
+
+# Dataset completo (300 imágenes)
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
+full_dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
+print(f"Total imágenes en dataset: {len(full_dataset)}")
 
-# Dataset y Dataloader
-dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=(256, 256))
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
-print(f"Total imágenes en dataset: {len(dataset)}")
+# Dividir en train (80%) y val (20%)
+train_size = int(0.8 * len(full_dataset))
+val_size = len(full_dataset) - train_size
+train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+
+train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
+
+# Dataset de prueba (60 imágenes)
+test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
+test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
+test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys, img_size=(256, 256))
+test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # Dispositivo y modelo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -43,8 +56,10 @@ with open(log_path, "w") as log_file:
 
     for epoch in range(50):
         running_loss = 0.0
-        for batch_idx, (inputs, targets) in enumerate(dataloader, start=1):
-            if batch_idx > 300:  # Límite por época
+        model.train()
+
+        for batch_idx, (inputs, targets) in enumerate(train_loader, start=1):
+            if batch_idx > 300:
                 break
 
             inputs, targets = inputs.to(device), targets.to(device)
@@ -62,18 +77,32 @@ with open(log_path, "w") as log_file:
             print(log_line)
             log_file.write(log_line + "\n")
 
-        avg_loss = running_loss / min(300, len(dataloader))
-        log_file.write(f"=> Epoch {epoch+1} promedio: {avg_loss:.5f}\n\n")
+        avg_train_loss = running_loss / min(300, len(train_loader))
+        log_file.write(f"=> Epoch {epoch+1} Promedio Train: {avg_train_loss:.5f}\n")
+
+        # Evaluación en validación
+        val_loss = 0.0
+        model.eval()
+        with torch.no_grad():
+            for inputs, targets in val_loader:
+                inputs, targets = inputs.to(device), targets.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                val_loss += loss.item()
+        avg_val_loss = val_loss / len(val_loader)
+        log_file.write(f"=> Epoch {epoch+1} Promedio Val: {avg_val_loss:.5f}\n\n")
+
         torch.cuda.empty_cache()
 
     end_time = datetime.now(colombia_zone)
     log_file.write(f"\nEntrenamiento finalizado: {end_time}\n")
     log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
-    # Métricas (sin gradientes)
+    # Evaluación en test set
+    model.eval()
     with torch.no_grad():
-        mrae, rmse, sam = compute_metrics(model, dataloader, device)
-        log_file.write("Métricas finales:\n")
+        mrae, rmse, sam = compute_metrics(model, test_loader, device)
+        log_file.write("Métricas en Test Set:\n")
         log_file.write(f"MRAE: {mrae:.5f}\n")
         log_file.write(f"RMSE: {rmse:.5f}\n")
         log_file.write(f"SAM:  {sam:.5f}\n")
