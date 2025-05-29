@@ -33,14 +33,17 @@ def compute_metrics(model, dataloader, device, nir_threshold=0.05):
             rmse = torch.sqrt(F.mse_loss(preds_valid, targets_valid, reduction='mean'))
             rmse_list.append(rmse.item())
 
-            # SAM: en imágenes monocromáticas, el SAM no tiene sentido (ángulo entre vectores de dimensión 1)
-            # Se puede omitir o usar 0
-            sam_list.append(0.0)
+            # SAM: Spectral Angle Mapper (por pixel)
+            dot_product = (preds_flat * targets_flat).sum(dim=1)
+            norm_pred = torch.norm(preds_flat, p=2, dim=1)
+            norm_target = torch.norm(targets_flat, p=2, dim=1)
+            sam = torch.acos(torch.clamp(dot_product / (norm_pred * norm_target + 1e-6), -1.0, 1.0))
+            sam_list.append(sam.cpu().numpy())
 
     # Promedio sobre todas las imágenes
     mrae_mean = np.mean(mrae_list)
     rmse_mean = np.mean(rmse_list)
-    sam_mean = 0.0  # omitido si output tiene solo una banda
+    sam_mean = np.degrees(np.concatenate(sam_list).mean())
 
     print(f"Final Metrics on Dataset (threshold > {nir_threshold}):")
     print(f"  ➤ MRAE: {mrae_mean:.5f}")
