@@ -49,7 +49,7 @@ def main():
         transforms.Normalize([0.5], [0.5])
     ])
 
-    # Dataset principal
+    # Dataset completo
     rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
     nir_keys = list_s3_files(bucket_name, 'nir_images/')
     full_dataset = RGBNIRDatasetS3(
@@ -98,8 +98,9 @@ def main():
             generator.train()
             discriminator.train()
             g_loss_epoch, d_loss_epoch = 0.0, 0.0
+            num_batches = len(train_loader)
 
-            for i, (imgs_rgb, imgs_nir) in enumerate(train_loader):
+            for i, (imgs_rgb, imgs_nir) in enumerate(train_loader, start=1):
                 imgs_rgb, imgs_nir = imgs_rgb.to(device), imgs_nir.to(device)
                 valid = torch.ones((imgs_rgb.size(0), 1, 30, 30), device=device)
                 fake = torch.zeros((imgs_rgb.size(0), 1, 30, 30), device=device)
@@ -128,9 +129,13 @@ def main():
                 g_loss_epoch += g_loss.item()
                 d_loss_epoch += d_loss.item()
 
-                print(f"[Epoch {epoch+1}/{n_epochs}] [Batch {i+1}/{len(train_loader)}] "
-                      f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}]")
+                log_line = (f"[Epoch {epoch+1}/{n_epochs}] [Batch {i}/{num_batches}] "
+                            f"[D loss: {d_loss.item():.5f}] [G loss: {g_loss.item():.5f}]")
+                print(log_line)
+                log_file.write(log_line + "\n")
 
+            avg_g_loss = g_loss_epoch / num_batches
+            avg_d_loss = d_loss_epoch / num_batches
             scheduler_G.step()
             scheduler_D.step()
 
@@ -144,8 +149,11 @@ def main():
                     val_loss_total += consistency_loss(gen_imgs, imgs_nir).item()
             avg_val_loss = val_loss_total / len(val_loader)
 
-            log_file.write(f"Epoch {epoch+1}: G_loss={g_loss_epoch:.5f}, D_loss={d_loss_epoch:.5f}, "
-                           f"Val_loss={avg_val_loss:.5f}\n")
+            summary_line = (f"=> Epoch {epoch+1} Promedios => "
+                            f"G_loss: {avg_g_loss:.5f}, D_loss: {avg_d_loss:.5f}, "
+                            f"Val_loss: {avg_val_loss:.5f}")
+            print(summary_line)
+            log_file.write(summary_line + "\n\n")
             torch.cuda.empty_cache()
 
         # Final
@@ -157,7 +165,7 @@ def main():
         generator.eval()
         with torch.no_grad():
             mrae, rmse, sam = compute_metrics(generator, test_loader, device)
-            log_file.write("\nMétricas en Test Set:\n")
+            log_file.write("Métricas en Test Set:\n")
             log_file.write(f"MRAE: {mrae:.5f}\n")
             log_file.write(f"RMSE: {rmse:.5f}\n")
             log_file.write(f"SAM:  {sam:.5f}\n")
