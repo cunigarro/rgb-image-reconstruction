@@ -28,14 +28,14 @@ train_size = int(0.8 * len(full_dataset))
 val_size = len(full_dataset) - train_size
 train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
 
-train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
 # Dataset de prueba (60 imágenes)
 test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
 test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
 test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys, img_size)
-test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
 # Dispositivo y modelo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -100,11 +100,12 @@ with open(log_path, "w") as log_file:
     # Evaluación final en test set
     model.eval()
     with torch.no_grad():
-        mrae, rmse, sam = compute_metrics(model, test_loader, device)
+        mrae, rmse, mae, psnr = compute_metrics(model, test_loader, device)
         log_file.write("Métricas en Test Set:\n")
         log_file.write(f"MRAE: {mrae:.5f}\n")
         log_file.write(f"RMSE: {rmse:.5f}\n")
-        log_file.write(f"SAM:  {sam:.5f}\n")
+        log_file.write(f"MAE:  {mae:.5f}\n")
+        log_file.write(f"PSNR: {psnr:.2f} dB\n")
 
     # Guardar modelo
     torch.save(model.state_dict(), f"srbfwu_d_inference_{timestamp}.pth")
