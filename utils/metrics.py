@@ -37,13 +37,13 @@ def compute_metrics(model, dataloader, device, nir_threshold=0.05):
             rmse_list.append(rmse.item())
 
             # MAE: Mean Absolute Error
-            mae = torch.abs(preds_valid - targets_valid).mean(dim=1)
-            mae_list.append(mae.cpu().numpy())
+            mae = torch.abs(preds_valid - targets_valid).mean()
+            mae_list.append(mae.item())
 
-            # PSNR: Peak Signal-to-Noise Ratio (por imagen)
-            mse = F.mse_loss(preds_valid, targets_valid, reduction='none').mean(dim=1)
+            # PSNR: Peak Signal-to-Noise Ratio
+            mse = F.mse_loss(preds_valid, targets_valid, reduction='mean')
             psnr = 20 * torch.log10(torch.tensor(1.0)) - 10 * torch.log10(mse + 1e-8)
-            psnr_list.append(psnr.cpu().numpy())
+            psnr_list.append(psnr.item())
 
     # Calcular promedios
     mrae_mean = np.concatenate(mrae_list).mean()
