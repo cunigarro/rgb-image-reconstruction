@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-def compute_metrics(model, dataloader, device):
+def compute_metrics(model, dataloader, device, nir_threshold=0.05):
     model.eval()
     mrae_list = []
     rmse_list = []
@@ -13,33 +13,36 @@ def compute_metrics(model, dataloader, device):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
 
-            # Flatten para métricas: (batch, H, W) ➔ (batch, H*W)
-            preds_flat = outputs.squeeze(1).view(outputs.size(0), -1)
-            targets_flat = targets.squeeze(1).view(targets.size(0), -1)
+            preds_flat = outputs.squeeze(1).view(-1)
+            targets_flat = targets.squeeze(1).view(-1)
 
-            # MRAE: Mean Relative Absolute Error
-            mrae = torch.abs(preds_flat - targets_flat) / (torch.abs(targets_flat) + 1e-6)
-            mrae = mrae.mean(dim=1)  # mean por imagen
-            mrae_list.append(mrae.cpu().numpy())
+            # Máscara para ignorar regiones con poco valor NIR
+            mask = targets_flat > nir_threshold
+            if mask.sum() == 0:
+                continue  # Evita división por cero si no hay píxeles válidos
 
-            # RMSE: Root Mean Square Error
-            rmse = torch.sqrt(F.mse_loss(preds_flat, targets_flat, reduction='none'))
-            rmse = rmse.mean(dim=1)  # mean por imagen
-            rmse_list.append(rmse.cpu().numpy())
+            # Aplicar máscara
+            preds_valid = preds_flat[mask]
+            targets_valid = targets_flat[mask]
 
-            # SAM: Spectral Angle Mapper (por pixel)
-            dot_product = (preds_flat * targets_flat).sum(dim=1)
-            norm_pred = torch.norm(preds_flat, p=2, dim=1)
-            norm_target = torch.norm(targets_flat, p=2, dim=1)
-            sam = torch.acos(torch.clamp(dot_product / (norm_pred * norm_target + 1e-6), -1.0, 1.0))
-            sam_list.append(sam.cpu().numpy())
+            # MRAE
+            mrae = torch.abs(preds_valid - targets_valid) / (torch.abs(targets_valid) + 1e-6)
+            mrae_list.append(mrae.mean().item())
 
-    # Promediar sobre todo el dataset
-    mrae_mean = np.concatenate(mrae_list).mean()
-    rmse_mean = np.concatenate(rmse_list).mean()
-    sam_mean = np.degrees(np.concatenate(sam_list).mean())  # en grados
+            # RMSE
+            rmse = torch.sqrt(F.mse_loss(preds_valid, targets_valid, reduction='mean'))
+            rmse_list.append(rmse.item())
 
-    print(f"Final Metrics on Dataset:")
+            # SAM: en imágenes monocromáticas, el SAM no tiene sentido (ángulo entre vectores de dimensión 1)
+            # Se puede omitir o usar 0
+            sam_list.append(0.0)
+
+    # Promedio sobre todas las imágenes
+    mrae_mean = np.mean(mrae_list)
+    rmse_mean = np.mean(rmse_list)
+    sam_mean = 0.0  # omitido si output tiene solo una banda
+
+    print(f"Final Metrics on Dataset (threshold > {nir_threshold}):")
     print(f"  ➤ MRAE: {mrae_mean:.5f}")
     print(f"  ➤ RMSE: {rmse_mean:.5f}")
     print(f"  ➤ SAM (deg): {sam_mean:.5f}")
