@@ -55,7 +55,7 @@ with open(log_path, "w") as log_file:
     start_time = datetime.now(colombia_zone)
     log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
-    for epoch in range(10):
+    for epoch in range(5):
         running_loss = 0.0
         model.train()
 
@@ -74,7 +74,7 @@ with open(log_path, "w") as log_file:
             scaler.update()
 
             running_loss += loss.item()
-            log_line = f"[Epoch {epoch+1}/50] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
+            log_line = f"[Epoch {epoch+1}/5] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
             print(log_line)
             log_file.write(log_line + "\n")
 
