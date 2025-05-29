@@ -46,10 +46,10 @@ def compute_metrics(model, dataloader, device, nir_threshold=0.05):
             psnr_list.append(psnr.item())
 
     # Calcular promedios
-    mrae_mean = np.concatenate(mrae_list).mean()
-    rmse_mean = np.concatenate(rmse_list).mean()
-    mae_mean = np.concatenate(mae_list).mean()
-    psnr_mean = np.concatenate(psnr_list).mean()
+    mrae_mean = np.mean(mrae_list)
+    rmse_mean = np.mean(rmse_list)
+    mae_mean = np.mean(mae_list)
+    psnr_mean = np.mean(psnr_list)
 
     print(f"Final Metrics on Dataset:")
     print(f"  ➤ MRAE: {mrae_mean:.5f}")
