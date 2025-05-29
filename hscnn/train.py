@@ -102,11 +102,12 @@ with open(log_path, "w") as log_file:
     # Evaluación en test set
     model.eval()
     with torch.no_grad():
-        mrae, rmse, sam = compute_metrics(model, test_loader, device)
+        mrae, rmse, mae, psnr = compute_metrics(model, test_loader, device)
         log_file.write("Métricas en Test Set:\n")
         log_file.write(f"MRAE: {mrae:.5f}\n")
         log_file.write(f"RMSE: {rmse:.5f}\n")
-        log_file.write(f"SAM:  {sam:.5f}\n")
+        log_file.write(f"MAE:  {mae:.5f}\n")
+        log_file.write(f"PSNR: {psnr:.2f} dB\n")
 
     # Guardar modelo
     torch.save(model.state_dict(), f"hscnn_d_inference_{timestamp}.pth")
