@@ -32,7 +32,6 @@ def main():
     bucket_name = 'dataset-rgb-nir-01'
     rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
     nir_keys = list_s3_files(bucket_name, 'nir_images/')
-    img_size = (256, 256)
 
     # Hora
     colombia_tz = ZoneInfo("America/Bogota")
@@ -41,12 +40,10 @@ def main():
 
     # Transforms
     transform_rgb = transforms.Compose([
-        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
     transform_nir = transforms.Compose([
-        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5])
     ])
