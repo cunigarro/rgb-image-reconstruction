@@ -20,7 +20,7 @@ img_size = (256, 256)
 # Dataset completo (300 imágenes)
 rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
 nir_keys = list_s3_files(bucket_name, 'nir_images/')
-full_dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size=img_size)
+full_dataset = SequoiaDatasetNIR_S3(bucket_name, rgb_keys, nir_keys, img_size)
 print(f"Total imágenes en dataset: {len(full_dataset)}")
 
 # División en train y val
@@ -34,7 +34,7 @@ val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 # Dataset de prueba (60 imágenes)
 test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
 test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
-test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys, img_size=img_size)
+test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys, img_size)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # Dispositivo y modelo
