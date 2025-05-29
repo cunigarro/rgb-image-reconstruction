@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-def compute_metrics(model, dataloader, device):
+def compute_metrics(model, dataloader, device, nir_threshold=0.05):
     model.eval()
     mrae_list = []
     rmse_list = []
@@ -16,25 +16,32 @@ def compute_metrics(model, dataloader, device):
             outputs = model(inputs)
 
             # Flatten: (batch, 1, H, W) ➝ (batch, H*W)
-            preds_flat = outputs.squeeze(1).view(outputs.size(0), -1)
-            targets_flat = targets.squeeze(1).view(targets.size(0), -1)
+            preds_flat = outputs.squeeze(1).view(-1)
+            targets_flat = targets.squeeze(1).view(-1)
 
-            # MRAE: Mean Relative Absolute Error
-            mrae = torch.abs(preds_flat - targets_flat) / (torch.abs(targets_flat) + 1e-6)
-            mrae = mrae.mean(dim=1)
-            mrae_list.append(mrae.cpu().numpy())
+            # Máscara para ignorar regiones con poco valor NIR
+            mask = targets_flat > nir_threshold
+            if mask.sum() == 0:
+                continue  # Evita división por cero si no hay píxeles válidos
 
-            # RMSE: Root Mean Square Error
-            rmse = torch.sqrt(F.mse_loss(preds_flat, targets_flat, reduction='none'))
-            rmse = rmse.mean(dim=1)
-            rmse_list.append(rmse.cpu().numpy())
+            # Aplicar máscara
+            preds_valid = preds_flat[mask]
+            targets_valid = targets_flat[mask]
+
+            # MRAE
+            mrae = torch.abs(preds_valid - targets_valid) / (torch.abs(targets_valid) + 1e-6)
+            mrae_list.append(mrae.mean().item())
+
+            # RMSE
+            rmse = torch.sqrt(F.mse_loss(preds_valid, targets_valid, reduction='mean'))
+            rmse_list.append(rmse.item())
 
             # MAE: Mean Absolute Error
-            mae = torch.abs(preds_flat - targets_flat).mean(dim=1)
+            mae = torch.abs(preds_valid - targets_valid).mean(dim=1)
             mae_list.append(mae.cpu().numpy())
 
             # PSNR: Peak Signal-to-Noise Ratio (por imagen)
-            mse = F.mse_loss(preds_flat, targets_flat, reduction='none').mean(dim=1)
+            mse = F.mse_loss(preds_valid, targets_valid, reduction='none').mean(dim=1)
             psnr = 20 * torch.log10(torch.tensor(1.0)) - 10 * torch.log10(mse + 1e-8)
             psnr_list.append(psnr.cpu().numpy())
 
