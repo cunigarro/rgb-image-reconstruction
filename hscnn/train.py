@@ -55,7 +55,7 @@ with open(log_path, "w") as log_file:
     start_time = datetime.now(colombia_zone)
     log_file.write(f"Entrenamiento iniciado: {start_time}\n\n")
 
-    for epoch in range(5):
+    for epoch in range(50):
         running_loss = 0.0
         model.train()
 
