@@ -30,8 +30,6 @@ def main():
     n_epochs = 50
     batch_size = 1
     bucket_name = 'dataset-rgb-nir-01'
-    rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
-    nir_keys = list_s3_files(bucket_name, 'nir_images/')
     img_size = (256, 256)
 
     # Hora
@@ -51,7 +49,9 @@ def main():
         transforms.Normalize([0.5], [0.5])
     ])
 
-    # Dataset completo
+    # Dataset principal
+    rgb_keys = list_s3_files(bucket_name, 'rgb_images/')
+    nir_keys = list_s3_files(bucket_name, 'nir_images/')
     full_dataset = RGBNIRDatasetS3(
         bucket_name=bucket_name,
         rgb_keys=rgb_keys,
@@ -59,15 +59,13 @@ def main():
         transform_rgb=transform_rgb,
         transform_nir=transform_nir
     )
-
     train_size = int(0.8 * len(full_dataset))
     val_size = len(full_dataset) - train_size
     train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
-
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
-    # Test loader
+    # Dataset test
     test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
     test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
     test_dataset = RGBNIRDatasetS3(
@@ -79,6 +77,7 @@ def main():
     )
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
+    # Modelos
     generator = RGBToNIRGenerator().to(device)
     discriminator = NIRDiscriminator().to(device)
 
@@ -105,7 +104,7 @@ def main():
                 valid = torch.ones((imgs_rgb.size(0), 1, 30, 30), device=device)
                 fake = torch.zeros((imgs_rgb.size(0), 1, 30, 30), device=device)
 
-                # Entrenamiento del generador
+                # Generador
                 optimizer_G.zero_grad()
                 with autocast():
                     gen_imgs = generator(imgs_rgb)
@@ -116,7 +115,7 @@ def main():
                 scaler.step(optimizer_G)
                 scaler.update()
 
-                # Entrenamiento del discriminador
+                # Discriminador
                 optimizer_D.zero_grad()
                 with autocast():
                     real_loss = adversarial_loss(discriminator(imgs_nir), valid)
@@ -154,7 +153,7 @@ def main():
         log_file.write(f"\nFin del entrenamiento: {end_time}\n")
         log_file.write(f"Duración total: {end_time - start_time}\n\n")
 
-        # Métricas en test set
+        # Test set
         generator.eval()
         with torch.no_grad():
             mrae, rmse, sam = compute_metrics(generator, test_loader, device)
