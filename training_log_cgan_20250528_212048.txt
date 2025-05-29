@@ -1,0 +1,61 @@
+Inicio de entrenamiento: 2025-05-28 21:20:49.493589-05:00
+
+Epoch 1: G_loss=224.21044, D_loss=143.35441, Val_loss=0.29318
+Epoch 2: G_loss=214.22166, D_loss=132.10213, Val_loss=0.19245
+Epoch 3: G_loss=211.30247, D_loss=122.39890, Val_loss=0.18666
+Epoch 4: G_loss=204.62009, D_loss=134.69381, Val_loss=0.16972
+Epoch 5: G_loss=202.51244, D_loss=166.35581, Val_loss=0.15887
+Epoch 6: G_loss=202.47791, D_loss=158.38092, Val_loss=0.24578
+Epoch 7: G_loss=209.96139, D_loss=122.39691, Val_loss=0.19518
+Epoch 8: G_loss=204.45675, D_loss=120.81887, Val_loss=0.16293
+Epoch 9: G_loss=201.29785, D_loss=120.79141, Val_loss=0.15768
+Epoch 10: G_loss=201.18744, D_loss=120.93420, Val_loss=0.16344
+Epoch 11: G_loss=199.54285, D_loss=120.78179, Val_loss=0.15273
+Epoch 12: G_loss=198.79716, D_loss=120.77645, Val_loss=0.15674
+Epoch 13: G_loss=202.12465, D_loss=121.37387, Val_loss=0.16072
+Epoch 14: G_loss=202.96790, D_loss=124.21420, Val_loss=0.20684
+Epoch 15: G_loss=200.69877, D_loss=166.35567, Val_loss=0.16090
+Epoch 16: G_loss=197.53128, D_loss=166.35557, Val_loss=0.17180
+Epoch 17: G_loss=196.16738, D_loss=166.35527, Val_loss=0.14721
+Epoch 18: G_loss=195.53032, D_loss=166.35526, Val_loss=0.15036
+Epoch 19: G_loss=194.69442, D_loss=166.35528, Val_loss=0.14188
+Epoch 20: G_loss=194.45121, D_loss=166.35519, Val_loss=0.15494
+Epoch 21: G_loss=194.10620, D_loss=166.35498, Val_loss=0.14762
+Epoch 22: G_loss=196.65887, D_loss=136.75872, Val_loss=0.15077
+Epoch 23: G_loss=197.67826, D_loss=121.60297, Val_loss=0.16413
+Epoch 24: G_loss=196.73621, D_loss=120.78801, Val_loss=0.15712
+Epoch 25: G_loss=195.40939, D_loss=120.78056, Val_loss=0.15273
+Epoch 26: G_loss=194.87955, D_loss=120.79486, Val_loss=0.15261
+Epoch 27: G_loss=194.78310, D_loss=122.29817, Val_loss=0.15360
+Epoch 28: G_loss=195.23063, D_loss=120.83690, Val_loss=0.14505
+Epoch 29: G_loss=193.24232, D_loss=120.77176, Val_loss=0.14510
+Epoch 30: G_loss=192.66604, D_loss=120.77777, Val_loss=0.14166
+Epoch 31: G_loss=191.70979, D_loss=120.77531, Val_loss=0.14410
+Epoch 32: G_loss=191.46628, D_loss=120.91663, Val_loss=0.15968
+Epoch 33: G_loss=192.92368, D_loss=121.04551, Val_loss=0.16464
+Epoch 34: G_loss=193.51502, D_loss=120.79325, Val_loss=0.15795
+Epoch 35: G_loss=191.72916, D_loss=120.78345, Val_loss=0.14452
+Epoch 36: G_loss=191.12410, D_loss=120.78115, Val_loss=0.13921
+Epoch 37: G_loss=190.87673, D_loss=120.77583, Val_loss=0.15572
+Epoch 38: G_loss=191.88495, D_loss=120.81780, Val_loss=0.14226
+Epoch 39: G_loss=191.01941, D_loss=120.78642, Val_loss=0.14566
+Epoch 40: G_loss=191.43899, D_loss=120.77770, Val_loss=0.14039
+Epoch 41: G_loss=190.33375, D_loss=120.77931, Val_loss=0.14239
+Epoch 42: G_loss=190.06915, D_loss=120.78020, Val_loss=0.14142
+Epoch 43: G_loss=189.87473, D_loss=142.27729, Val_loss=0.14124
+Epoch 44: G_loss=189.37474, D_loss=166.35534, Val_loss=0.14238
+Epoch 45: G_loss=189.18671, D_loss=166.35536, Val_loss=0.14027
+Epoch 46: G_loss=189.07647, D_loss=166.35534, Val_loss=0.13979
+Epoch 47: G_loss=188.86901, D_loss=166.35534, Val_loss=0.13984
+Epoch 48: G_loss=188.76411, D_loss=166.35534, Val_loss=0.13997
+Epoch 49: G_loss=188.59533, D_loss=166.35534, Val_loss=0.13966
+Epoch 50: G_loss=188.50932, D_loss=166.35534, Val_loss=0.14213
+
+Fin del entrenamiento: 2025-05-28 21:36:54.337375-05:00
+Duración total: 0:16:04.843786
+
+
+Métricas en Test Set:
+MRAE: -0.30190
+RMSE: 0.25706
+SAM:  42.74960
