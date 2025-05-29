@@ -74,7 +74,7 @@ with open(log_path, "w") as log_file:
             scaler.update()
 
             running_loss += loss.item()
-            log_line = f"[Epoch {epoch+1}/5] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
+            log_line = f"[Epoch {epoch+1}/50] [Batch {batch_idx}/300] [Loss: {loss.item():.5f}]"
             print(log_line)
             log_file.write(log_line + "\n")
 
