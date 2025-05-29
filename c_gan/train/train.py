@@ -28,7 +28,7 @@ def main():
     # Configuración
     lr = 0.0002
     n_epochs = 50
-    batch_size = 1
+    batch_size = 4
     bucket_name = 'dataset-rgb-nir-01'
     img_size = (256, 256)
 
@@ -75,7 +75,7 @@ def main():
         transform_rgb=transform_rgb,
         transform_nir=transform_nir
     )
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # Modelos
     generator = RGBToNIRGenerator().to(device)
@@ -164,11 +164,12 @@ def main():
         # Test set
         generator.eval()
         with torch.no_grad():
-            mrae, rmse, sam = compute_metrics(generator, test_loader, device)
+            mrae, rmse, mae, psnr = compute_metrics(generator, test_loader, device)
             log_file.write("Métricas en Test Set:\n")
             log_file.write(f"MRAE: {mrae:.5f}\n")
             log_file.write(f"RMSE: {rmse:.5f}\n")
-            log_file.write(f"SAM:  {sam:.5f}\n")
+            log_file.write(f"MAE:  {mae:.5f}\n")
+            log_file.write(f"PSNR: {psnr:.2f} dB\n")
 
     torch.save(generator.state_dict(), f'generator_{timestamp}.pth')
     torch.save(discriminator.state_dict(), f'discriminator_{timestamp}.pth')
