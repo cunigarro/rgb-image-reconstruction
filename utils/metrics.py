@@ -18,7 +18,7 @@ def compute_metrics(model, dataloader, device):
             targets_flat = targets.squeeze(1).view(targets.size(0), -1)
 
             # MRAE: Mean Relative Absolute Error
-            mrae = torch.abs(preds_flat - targets_flat) / (targets_flat + 1e-6)
+            mrae = torch.abs(preds_flat - targets_flat) / (torch.abs(targets_flat) + 1e-6)
             mrae = mrae.mean(dim=1)  # mean por imagen
             mrae_list.append(mrae.cpu().numpy())
 
