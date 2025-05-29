@@ -34,7 +34,7 @@ val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 test_rgb_keys = list_s3_files(bucket_name, 'rgb_images_test/')
 test_nir_keys = list_s3_files(bucket_name, 'nir_images_test/')
 test_dataset = SequoiaDatasetNIR_S3(bucket_name, test_rgb_keys, test_nir_keys, img_size)
-test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # Dispositivo y modelo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
