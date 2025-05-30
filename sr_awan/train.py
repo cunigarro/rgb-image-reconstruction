@@ -69,6 +69,7 @@ with open(log_path, "w") as log_file:
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
             scaler.scale(loss).backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             scaler.step(optimizer)
             scaler.update()
 
