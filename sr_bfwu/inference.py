@@ -9,7 +9,7 @@ import time
 from sr_bfwu.model import SRBFWU_Net
 
 # Rutas
-weights_path = './srbfwu_d_inference_20250520_185038.pth'
+weights_path = './srbfwu_d_inference_20250529_173814.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo

@@ -9,7 +9,7 @@ import time
 from sr_unet.model import SRUNet
 
 # Rutas
-weights_path = './srunet_d_inference_20250520_152741.pth'
+weights_path = './srunet_d_inference_20250529_181124.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo

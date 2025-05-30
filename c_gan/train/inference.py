@@ -9,7 +9,7 @@ import time
 from c_gan.train.generator import RGBToNIRGenerator
 
 # Rutas
-weights_path = './generator_20250520_210144.pth'
+weights_path = './generator_20250529_184120.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo

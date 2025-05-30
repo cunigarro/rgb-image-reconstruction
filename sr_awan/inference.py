@@ -9,7 +9,7 @@ import time
 from sr_awan.model import SRAWAN
 
 # Rutas
-weights_path = './srawan_d_inference_20250520_155825.pth'
+weights_path = './srawan_d_inference_20250530_064646.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo

@@ -9,7 +9,7 @@ import time
 from hscnn.model import HSCNN_D_NIR
 
 # Rutas
-weights_path = './hscnn_d_inference_20250520_142157.pth'
+weights_path = './hscnn_d_inference_20250529_161715.pth'
 image_path = './rgb_image.jpg'
 
 # Cargar modelo
